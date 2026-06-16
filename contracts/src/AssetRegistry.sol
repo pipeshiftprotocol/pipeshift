@@ -1,0 +1,107 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+import {IAssetRegistry} from "./interfaces/IAssetRegistry.sol";
+import {Owned} from "./libraries/Owned.sol";
+
+contract AssetRegistry is IAssetRegistry, Owned {
+    mapping(bytes32 => Security) private _securities;
+    mapping(address => bytes32) private _idOfToken;
+
+    bytes32[] private _ids;
+
+    constructor(address owner_) Owned(owner_) {}
+
+    function list(Security calldata security) external onlyOwner returns (bytes32 id) {
+        if (security.token == address(0)) revert ZeroToken();
+        if (security.custodian == address(0)) revert ZeroCustodian();
+
+        id = idOf(security.ticker, security.isin);
+
+        if (_securities[id].listing != Listing.None) revert AlreadyListed(id);
+
+        bytes32 mapped = _idOfToken[security.token];
+        if (mapped != bytes32(0)) revert TokenAlreadyMapped(security.token, mapped);
+
+        _securities[id] = Security({
+            token: security.token,
+            ticker: security.ticker,
+            isin: security.isin,
+            custodian: security.custodian,
+            decimals: security.decimals,
+            listing: Listing.Active
+        });
+        _idOfToken[security.token] = id;
+        _ids.push(id);
+
+        emit SecurityListed(id, security.token, security.ticker);
+    }
+
+    function halt(bytes32 id, string calldata reason) external onlyOwner {
+        Security storage s = _securities[id];
+        if (s.listing == Listing.None) revert NotListed(id);
+        if (s.listing != Listing.Active) revert NotActive(id, s.listing);
+
+        s.listing = Listing.Halted;
+        emit SecurityHalted(id, reason);
+    }
+
+    function resume(bytes32 id) external onlyOwner {
+        Security storage s = _securities[id];
+        if (s.listing != Listing.Halted) revert NotActive(id, s.listing);
+
+        s.listing = Listing.Active;
+        emit SecurityResumed(id);
+    }
+
+    function delist(bytes32 id) external onlyOwner {
+        Security storage s = _securities[id];
+        if (s.listing == Listing.None) revert NotListed(id);
+
+        s.listing = Listing.Delisted;
+        emit SecurityDelisted(id);
+    }
+
+    function setCustodian(bytes32 id, address custodian) external onlyOwner {
+        if (custodian == address(0)) revert ZeroCustodian();
+
+        Security storage s = _securities[id];
+        if (s.listing == Listing.None) revert NotListed(id);
+
+        address previous = s.custodian;
+        s.custodian = custodian;
+        emit CustodianChanged(id, previous, custodian);
+    }
+
+    function securityOf(bytes32 id) external view returns (Security memory) {
+        return _securities[id];
+    }
+
+    function idOfToken(address token) external view returns (bytes32) {
+        return _idOfToken[token];
+    }
+
+    function isSettleable(bytes32 id) external view returns (bool) {
+        return _securities[id].listing == Listing.Active;
+    }
+
+    function count() external view returns (uint256) {
+        return _ids.length;
+    }
+
+        uint256 total = _ids.length;
+        if (offset >= total) return new bytes32[](0);
+
+        uint256 end = offset + limit;
+        if (end > total) end = total;
+
+        page = new bytes32[](end - offset);
+        for (uint256 i = offset; i < end; ++i) {
+            page[i - offset] = _ids[i];
+        }
+    }
+
+    function idOf(bytes12 ticker, bytes12 isin) public pure returns (bytes32) {
+        return keccak256(abi.encodePacked(ticker, isin));
+    }
+}
