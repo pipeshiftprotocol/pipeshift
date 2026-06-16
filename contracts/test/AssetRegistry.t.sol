@@ -50,4 +50,26 @@ contract AssetRegistryTest is Test {
         assertEq(registry.count(), 1);
     }
 
+    /// @dev Two venues must not be able to list the same underlying twice.
+    function test_list_revertsOnDuplicateUnderlying() public {
+        vm.startPrank(owner);
+        bytes32 id = registry.list(_security(address(apple), bytes12("AAPL"), bytes12("US0378331005")));
+
+        vm.expectRevert(abi.encodeWithSelector(IAssetRegistry.AlreadyListed.selector, id));
+        registry.list(_security(address(tesla), bytes12("AAPL"), bytes12("US0378331005")));
+        vm.stopPrank();
+    }
+
+    /// @dev One token address must map to exactly one canonical id.
+    function test_list_revertsWhenTokenAlreadyMapped() public {
+        vm.startPrank(owner);
+        bytes32 id = registry.list(_security(address(apple), bytes12("AAPL"), bytes12("US0378331005")));
+
+        vm.expectRevert(
+            abi.encodeWithSelector(IAssetRegistry.TokenAlreadyMapped.selector, address(apple), id)
+        );
+        registry.list(_security(address(apple), bytes12("TSLA"), bytes12("US88160R1014")));
+        vm.stopPrank();
+    }
+
 }
