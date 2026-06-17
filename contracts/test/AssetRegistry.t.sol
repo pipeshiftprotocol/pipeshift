@@ -116,4 +116,15 @@ contract AssetRegistryTest is Test {
         vm.stopPrank();
     }
 
+    function test_setCustodian_reassignsRecord() public {
+        address next = address(0xC058);
+
+        vm.startPrank(owner);
+        bytes32 id = registry.list(_security(address(apple), bytes12("AAPL"), bytes12("US0378331005")));
+        registry.setCustodian(id, next);
+        vm.stopPrank();
+
+        assertEq(registry.securityOf(id).custodian, next);
+    }
+
 }
