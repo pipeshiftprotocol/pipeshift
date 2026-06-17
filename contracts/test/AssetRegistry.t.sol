@@ -90,4 +90,30 @@ contract AssetRegistryTest is Test {
         registry.list(_security(address(apple), bytes12(0), bytes12("US0378331005")));
     }
 
+    function test_haltAndResume_flipSettleability() public {
+        vm.startPrank(owner);
+        bytes32 id = registry.list(_security(address(apple), bytes12("AAPL"), bytes12("US0378331005")));
+
+        registry.halt(id, "corporate action");
+        assertFalse(registry.isSettleable(id), "halted security must not settle");
+
+        registry.resume(id);
+        assertTrue(registry.isSettleable(id), "resumed security settles again");
+        vm.stopPrank();
+    }
+
+    function test_delist_isTerminal() public {
+        vm.startPrank(owner);
+        bytes32 id = registry.list(_security(address(apple), bytes12("AAPL"), bytes12("US0378331005")));
+
+        registry.delist(id);
+        assertFalse(registry.isSettleable(id));
+
+        vm.expectRevert(
+            abi.encodeWithSelector(IAssetRegistry.NotActive.selector, id, IAssetRegistry.Listing.Delisted)
+        );
+        registry.resume(id);
+        vm.stopPrank();
+    }
+
 }
