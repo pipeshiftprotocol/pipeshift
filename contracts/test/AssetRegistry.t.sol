@@ -84,4 +84,10 @@ contract AssetRegistryTest is Test {
         registry.list(_security(address(0), bytes12("AAPL"), bytes12("US0378331005")));
     }
 
+    function test_list_revertsOnEmptyTicker() public {
+        vm.prank(owner);
+        vm.expectRevert(IAssetRegistry.EmptyTicker.selector);
+        registry.list(_security(address(apple), bytes12(0), bytes12("US0378331005")));
+    }
+
 }
