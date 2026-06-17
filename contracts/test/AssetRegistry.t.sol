@@ -72,4 +72,16 @@ contract AssetRegistryTest is Test {
         vm.stopPrank();
     }
 
+    function test_list_revertsForNonOwner() public {
+        vm.prank(outsider);
+        vm.expectRevert(abi.encodeWithSelector(Owned.NotOwner.selector, outsider));
+        registry.list(_security(address(apple), bytes12("AAPL"), bytes12("US0378331005")));
+    }
+
+    function test_list_revertsOnZeroToken() public {
+        vm.prank(owner);
+        vm.expectRevert(IAssetRegistry.ZeroToken.selector);
+        registry.list(_security(address(0), bytes12("AAPL"), bytes12("US0378331005")));
+    }
+
 }
