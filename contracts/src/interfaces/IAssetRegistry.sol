@@ -30,6 +30,7 @@ interface IAssetRegistry {
     error TokenAlreadyMapped(address token, bytes32 id);
     error ZeroToken();
     error ZeroCustodian();
+    error EmptyTicker();
 
     function list(Security calldata security) external returns (bytes32 id);
 

@@ -15,6 +15,7 @@ contract AssetRegistry is IAssetRegistry, Owned {
     function list(Security calldata security) external onlyOwner returns (bytes32 id) {
         if (security.token == address(0)) revert ZeroToken();
         if (security.custodian == address(0)) revert ZeroCustodian();
+        if (security.ticker == bytes12(0)) revert EmptyTicker();
 
         id = idOf(security.ticker, security.isin);
 
