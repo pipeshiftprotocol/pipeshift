@@ -127,4 +127,20 @@ contract AssetRegistryTest is Test {
         assertEq(registry.securityOf(id).custodian, next);
     }
 
+    function test_idsPaged_returnsWindow() public {
+        vm.startPrank(owner);
+        registry.list(_security(address(apple), bytes12("AAPL"), bytes12("US0378331005")));
+        registry.list(_security(address(tesla), bytes12("TSLA"), bytes12("US88160R1014")));
+        vm.stopPrank();
+
+        bytes32[] memory page = registry.idsPaged(0, 1);
+        assertEq(page.length, 1);
+
+        bytes32[] memory beyond = registry.idsPaged(5, 10);
+        assertEq(beyond.length, 0, "offset past the end returns empty");
+
+        bytes32[] memory clamped = registry.idsPaged(1, 100);
+        assertEq(clamped.length, 1, "limit clamps to available");
+    }
+
 }
