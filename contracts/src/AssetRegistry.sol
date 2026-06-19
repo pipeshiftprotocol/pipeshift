@@ -90,6 +90,7 @@ contract AssetRegistry is IAssetRegistry, Owned {
         return _ids.length;
     }
 
+    function idsPaged(uint256 offset, uint256 limit) external view returns (bytes32[] memory page) {
         uint256 total = _ids.length;
         if (offset >= total) return new bytes32[](0);
 
