@@ -103,4 +103,17 @@ contract SettlementEngineTest is Test {
         assertEq(uint8(status), uint8(ISettlementEngine.Status.Affirmed));
     }
 
+    function test_settle_revertsOnSecondSettlement() public {
+        vm.prank(venue);
+        bytes32 id = engine.affirm(_instruction());
+        engine.settle(id);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ISettlementEngine.NotAffirmed.selector, id, ISettlementEngine.Status.Settled
+            )
+        );
+        engine.settle(id);
+    }
+
 }
