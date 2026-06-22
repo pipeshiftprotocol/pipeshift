@@ -84,4 +84,23 @@ contract SettlementEngineTest is Test {
         assertEq(uint8(status), uint8(ISettlementEngine.Status.Settled));
     }
 
+    /// @dev The property the whole contract exists for: a failing cash leg must not
+    ///      leave the security leg moved.
+    function test_settle_revertsWholeTradeWhenCashLegFails() public {
+        vm.prank(buyer);
+        cash.approve(address(engine), 0);
+
+        vm.prank(venue);
+        bytes32 id = engine.affirm(_instruction());
+
+        vm.expectRevert();
+        engine.settle(id);
+
+        assertEq(equity.balanceOf(seller), 1_000e18);
+        assertEq(equity.balanceOf(buyer), 0);
+
+        (, ISettlementEngine.Status status) = engine.instructionOf(id);
+        assertEq(uint8(status), uint8(ISettlementEngine.Status.Affirmed));
+    }
+
 }
