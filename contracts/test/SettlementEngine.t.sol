@@ -116,4 +116,18 @@ contract SettlementEngineTest is Test {
         engine.settle(id);
     }
 
+    function test_settle_revertsAfterDeadline() public {
+        ISettlementEngine.Instruction memory ins = _instruction();
+
+        vm.prank(venue);
+        bytes32 id = engine.affirm(ins);
+
+        vm.warp(ins.deadline + 1);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(ISettlementEngine.InstructionExpired.selector, id, ins.deadline)
+        );
+        engine.settle(id);
+    }
+
 }
