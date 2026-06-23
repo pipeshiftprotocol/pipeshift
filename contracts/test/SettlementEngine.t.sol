@@ -75,10 +75,10 @@ contract SettlementEngineTest is Test {
 
         engine.settle(id);
 
-        assertEq(equity.balanceOf(buyer), 400e18);
-        assertEq(cash.balanceOf(seller), 82_000e6);
-        assertEq(equity.balanceOf(seller), 600e18);
-        assertEq(engine.settledCount(), 1);
+        assertEq(equity.balanceOf(buyer), 400e18, "security leg");
+        assertEq(cash.balanceOf(seller), 82_000e6, "cash leg");
+        assertEq(equity.balanceOf(seller), 600e18, "seller remainder");
+        assertEq(engine.settledCount(), 1, "settled counter");
 
         (, ISettlementEngine.Status status) = engine.instructionOf(id);
         assertEq(uint8(status), uint8(ISettlementEngine.Status.Settled));
@@ -96,11 +96,11 @@ contract SettlementEngineTest is Test {
         vm.expectRevert();
         engine.settle(id);
 
-        assertEq(equity.balanceOf(seller), 1_000e18);
-        assertEq(equity.balanceOf(buyer), 0);
+        assertEq(equity.balanceOf(seller), 1_000e18, "security must not move");
+        assertEq(equity.balanceOf(buyer), 0, "buyer must receive nothing");
 
         (, ISettlementEngine.Status status) = engine.instructionOf(id);
-        assertEq(uint8(status), uint8(ISettlementEngine.Status.Affirmed));
+        assertEq(uint8(status), uint8(ISettlementEngine.Status.Affirmed), "status must not advance");
     }
 
     function test_settle_revertsOnSecondSettlement() public {
