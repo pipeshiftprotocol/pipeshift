@@ -130,4 +130,15 @@ contract SettlementEngineTest is Test {
         engine.settle(id);
     }
 
+    function test_settle_revertsWhenSecurityHalted() public {
+        vm.prank(venue);
+        bytes32 id = engine.affirm(_instruction());
+
+        vm.prank(owner);
+        registry.halt(security, "corporate action");
+
+        vm.expectRevert(abi.encodeWithSelector(ISettlementEngine.SecurityNotListed.selector, security));
+        engine.settle(id);
+    }
+
 }
