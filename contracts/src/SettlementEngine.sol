@@ -108,6 +108,7 @@ contract SettlementEngine is ISettlementEngine, Owned {
 
         Instruction memory ins = _instructions[id];
         if (block.timestamp > ins.deadline) revert InstructionExpired(id, ins.deadline);
+        if (!registry.isSettleable(ins.security)) revert SecurityNotListed(ins.security);
 
         address securityToken = registry.securityOf(ins.security).token;
 
