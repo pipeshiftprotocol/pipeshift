@@ -176,4 +176,19 @@ contract SettlementEngineTest is Test {
         engine.affirm(ins);
     }
 
+    function test_cancel_byPartyBlocksSettlement() public {
+        vm.prank(venue);
+        bytes32 id = engine.affirm(_instruction());
+
+        vm.prank(seller);
+        engine.cancel(id);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ISettlementEngine.NotAffirmed.selector, id, ISettlementEngine.Status.Cancelled
+            )
+        );
+        engine.settle(id);
+    }
+
 }
