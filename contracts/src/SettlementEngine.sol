@@ -63,6 +63,7 @@ contract SettlementEngine is ISettlementEngine, Owned {
         _settle(id);
     }
 
+    function settleBatch(bytes32[] calldata ids) external {
         uint256 length = ids.length;
         for (uint256 i; i < length; ++i) {
             _settle(ids[i]);
