@@ -166,4 +166,14 @@ contract SettlementEngineTest is Test {
         engine.affirm(ins);
     }
 
+    function test_affirm_revertsOnUnacceptedCash() public {
+        MockERC20 other = new MockERC20("Other", "OTH", 6);
+        ISettlementEngine.Instruction memory ins = _instruction();
+        ins.cash = address(other);
+
+        vm.prank(venue);
+        vm.expectRevert(abi.encodeWithSelector(ISettlementEngine.CashNotAccepted.selector, address(other)));
+        engine.affirm(ins);
+    }
+
 }
