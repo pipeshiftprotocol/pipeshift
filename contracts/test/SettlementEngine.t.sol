@@ -141,4 +141,20 @@ contract SettlementEngineTest is Test {
         engine.settle(id);
     }
 
+    function test_affirm_revertsForUnregisteredVenue() public {
+        address rogue = address(0xBAD);
+        vm.prank(rogue);
+        vm.expectRevert(abi.encodeWithSelector(ISettlementEngine.NotAVenue.selector, rogue));
+        engine.affirm(_instruction());
+    }
+
+    function test_affirm_revertsOnDuplicate() public {
+        vm.startPrank(venue);
+        bytes32 id = engine.affirm(_instruction());
+
+        vm.expectRevert(abi.encodeWithSelector(ISettlementEngine.AlreadyAffirmed.selector, id));
+        engine.affirm(_instruction());
+        vm.stopPrank();
+    }
+
 }
