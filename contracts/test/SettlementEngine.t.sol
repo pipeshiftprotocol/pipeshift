@@ -157,4 +157,13 @@ contract SettlementEngineTest is Test {
         vm.stopPrank();
     }
 
+    function test_affirm_revertsOnSelfTrade() public {
+        ISettlementEngine.Instruction memory ins = _instruction();
+        ins.buyer = seller;
+
+        vm.prank(venue);
+        vm.expectRevert(abi.encodeWithSelector(ISettlementEngine.SelfTrade.selector, seller));
+        engine.affirm(ins);
+    }
+
 }
