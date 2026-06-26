@@ -191,4 +191,25 @@ contract SettlementEngineTest is Test {
         engine.settle(id);
     }
 
+    function test_settleBatch_isAllOrNothing() public {
+        ISettlementEngine.Instruction memory first = _instruction();
+        ISettlementEngine.Instruction memory second = _instruction();
+        second.quantity = 5_000e18; // more than the seller holds
+
+        vm.startPrank(venue);
+        bytes32 idFirst = engine.affirm(first);
+        bytes32 idSecond = engine.affirm(second);
+        vm.stopPrank();
+
+        bytes32[] memory ids = new bytes32[](2);
+        ids[0] = idFirst;
+        ids[1] = idSecond;
+
+        vm.expectRevert();
+        engine.settleBatch(ids);
+
+        assertEq(equity.balanceOf(buyer), 0, "no leg of the batch may land");
+        assertEq(engine.settledCount(), 0, "counter untouched");
+    }
+
 }
