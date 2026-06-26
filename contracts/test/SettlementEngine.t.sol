@@ -242,4 +242,9 @@ contract SettlementEngineTest is Test {
         assertEq(quiet.balanceOf(buyer), 100e18, "no-return token must settle");
     }
 
+    function test_idOf_isDeterministic() public view {
+        ISettlementEngine.Instruction memory ins = _instruction();
+        assertEq(engine.idOf(ins), engine.idOf(ins));
+    }
+
 }
