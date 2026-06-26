@@ -21,6 +21,8 @@ library SafeTransfer {
 
     function _succeeded(bool ok, bytes memory data) private pure returns (bool) {
         if (!ok) return false;
+        if (data.length == 0) return true;
+        if (data.length != 32) return false;
         return abi.decode(data, (bool));
     }
 }
