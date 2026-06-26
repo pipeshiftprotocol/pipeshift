@@ -212,4 +212,34 @@ contract SettlementEngineTest is Test {
         assertEq(engine.settledCount(), 0, "counter untouched");
     }
 
+    function test_settle_toleratesTokensThatReturnNothing() public {
+        NoReturnERC20 quiet = new NoReturnERC20();
+        quiet.mint(seller, 100e18);
+
+        vm.prank(owner);
+        bytes32 quietId = registry.list(
+            IAssetRegistry.Security({
+                token: address(quiet),
+                ticker: bytes12("TSLA"),
+                isin: bytes12("US88160R1014"),
+                custodian: custodian,
+                decimals: 18,
+                listing: IAssetRegistry.Listing.Active
+            })
+        );
+
+        vm.prank(seller);
+        quiet.approve(address(engine), type(uint256).max);
+
+        ISettlementEngine.Instruction memory ins = _instruction();
+        ins.security = quietId;
+        ins.quantity = 100e18;
+
+        vm.prank(venue);
+        bytes32 id = engine.affirm(ins);
+        engine.settle(id);
+
+        assertEq(quiet.balanceOf(buyer), 100e18, "no-return token must settle");
+    }
+
 }
