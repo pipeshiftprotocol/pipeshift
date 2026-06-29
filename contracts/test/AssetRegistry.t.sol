@@ -143,4 +143,26 @@ contract AssetRegistryTest is Test {
         assertEq(clamped.length, 1, "limit clamps to available");
     }
 
+    function test_transferOwnership_isTwoStep() public {
+        address next = address(0xA11CF);
+
+        vm.prank(owner);
+        registry.transferOwnership(next);
+        assertEq(registry.owner(), owner, "ownership does not move on nomination");
+
+        vm.prank(next);
+        registry.acceptOwnership();
+        assertEq(registry.owner(), next, "ownership moves on acceptance");
+        assertEq(registry.pendingOwner(), address(0));
+    }
+
+    function test_acceptOwnership_revertsForWrongCaller() public {
+        vm.prank(owner);
+        registry.transferOwnership(address(0xA11CF));
+
+        vm.prank(outsider);
+        vm.expectRevert(abi.encodeWithSelector(Owned.NotPendingOwner.selector, outsider));
+        registry.acceptOwnership();
+    }
+
 }
