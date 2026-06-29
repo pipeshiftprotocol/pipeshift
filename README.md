@@ -43,3 +43,32 @@ its identity and its history.
 
 Pipeshift is not a DEX, not a venue, and not a custodian. It holds no positions between
 calls and takes no view on price.
+
+## How it works
+
+```
+venue matches a trade
+        │
+        ├── affirm(instruction) ──────► instruction stored, nothing moves yet
+        │                                     │
+        │                                     ▼
+        │                              settle(id)
+        │                                     │
+        │                    ┌────────────────┴────────────────┐
+        │                    ▼                                 ▼
+        │            security leg moves                cash leg moves
+        │            seller ──► buyer                  buyer ──► seller
+        │                    └────────────────┬────────────────┘
+        │                                     ▼
+        │                          both legs land, or neither does
+        │
+        └── many trades ──► netTrades() ──► settleSession(session)
+                                                  │
+                                                  ▼
+                                    one net transfer per party per leg
+```
+
+Affirming and settling are separate steps on purpose. A venue affirms as soon as it has a
+match, which is cheap and moves nothing. Settlement can then be triggered by anyone,
+batched, or deferred until the counterparties have funded, and the deadline on the
+instruction bounds how long that can take.
