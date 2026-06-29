@@ -247,4 +247,24 @@ contract SettlementEngineTest is Test {
         assertEq(engine.idOf(ins), engine.idOf(ins));
     }
 
+    function testFuzz_settle_conservesSupply(uint96 quantity, uint96 consideration) public {
+        quantity = uint96(bound(quantity, 1, 1_000e18));
+        consideration = uint96(bound(consideration, 1, 500_000e6));
+
+        ISettlementEngine.Instruction memory ins = _instruction();
+        ins.quantity = quantity;
+        ins.consideration = consideration;
+
+        uint256 equityBefore = equity.totalSupply();
+        uint256 cashBefore = cash.totalSupply();
+
+        vm.prank(venue);
+        bytes32 id = engine.affirm(ins);
+        engine.settle(id);
+
+        assertEq(equity.totalSupply(), equityBefore, "security supply conserved");
+        assertEq(cash.totalSupply(), cashBefore, "cash supply conserved");
+        assertEq(equity.balanceOf(buyer), quantity);
+        assertEq(cash.balanceOf(seller), consideration);
+    }
 }
