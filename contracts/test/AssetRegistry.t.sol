@@ -165,4 +165,9 @@ contract AssetRegistryTest is Test {
         registry.acceptOwnership();
     }
 
+    function test_idOf_isStableAcrossReissue() public view {
+        bytes32 first = registry.idOf(bytes12("AAPL"), bytes12("US0378331005"));
+        bytes32 second = registry.idOf(bytes12("AAPL"), bytes12("US0378331005"));
+        assertEq(first, second, "canonical id survives token reissue");
+    }
 }
