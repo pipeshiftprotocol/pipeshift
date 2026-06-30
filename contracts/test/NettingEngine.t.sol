@@ -1,0 +1,85 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+import {Test} from "forge-std/Test.sol";
+import {NettingEngine} from "../src/NettingEngine.sol";
+import {AssetRegistry} from "../src/AssetRegistry.sol";
+import {IAssetRegistry} from "../src/interfaces/IAssetRegistry.sol";
+import {MockERC20} from "./mocks/MockERC20.sol";
+
+contract NettingEngineTest is Test {
+    NettingEngine internal netting;
+    AssetRegistry internal registry;
+    MockERC20 internal equity;
+    MockERC20 internal cash;
+
+    address internal owner = address(0xA11CE);
+    address internal venue = address(0xFEE);
+    address internal custodian = address(0xC057);
+
+    address internal deskA = address(0xDA);
+    address internal deskB = address(0xDB);
+    address internal deskC = address(0xDC);
+
+    bytes32 internal security;
+
+    function setUp() public {
+        registry = new AssetRegistry(owner);
+        netting = new NettingEngine(owner, IAssetRegistry(address(registry)));
+
+        equity = new MockERC20("Pipeshift Apple", "pAAPL", 18);
+        cash = new MockERC20("USD Coin", "USDC", 6);
+
+        vm.startPrank(owner);
+        security = registry.list(
+            IAssetRegistry.Security({
+                token: address(equity),
+                ticker: bytes12("AAPL"),
+                isin: bytes12("US0378331005"),
+                custodian: custodian,
+                decimals: 18,
+                listing: IAssetRegistry.Listing.Active
+            })
+        );
+        netting.registerVenue(venue);
+        vm.stopPrank();
+
+        address[3] memory desks = [deskA, deskB, deskC];
+        for (uint256 i; i < desks.length; ++i) {
+            equity.mint(desks[i], 10_000e18);
+            cash.mint(desks[i], 5_000_000e6);
+
+            vm.startPrank(desks[i]);
+            equity.approve(address(netting), type(uint256).max);
+            cash.approve(address(netting), type(uint256).max);
+            vm.stopPrank();
+        }
+    }
+
+    /// @dev Three desks, a session that nets to zero on both legs.
+    function _balancedSession() internal view returns (NettingEngine.Session memory session) {
+        NettingEngine.Leg[] memory legs = new NettingEngine.Leg[](3);
+        legs[0] = NettingEngine.Leg({party: deskA, quantityDelta: 600e18, cashDelta: -123_000e6});
+        legs[1] = NettingEngine.Leg({party: deskB, quantityDelta: -400e18, cashDelta: 82_000e6});
+        legs[2] = NettingEngine.Leg({party: deskC, quantityDelta: -200e18, cashDelta: 41_000e6});
+
+        session = NettingEngine.Session({security: security, cash: address(cash), legs: legs});
+    }
+
+    function test_settleSession_appliesNetPositions() public {
+        vm.prank(venue);
+        netting.settleSession(_balancedSession(), 12_000);
+
+        assertEq(equity.balanceOf(deskA), 10_600e18);
+        assertEq(equity.balanceOf(deskB), 9_600e18);
+        assertEq(equity.balanceOf(deskC), 9_800e18);
+
+        assertEq(cash.balanceOf(deskA), 4_877_000e6);
+        assertEq(cash.balanceOf(deskB), 5_082_000e6);
+        assertEq(cash.balanceOf(deskC), 5_041_000e6);
+
+        assertEq(netting.sessionCount(), 1);
+        assertEq(netting.grossTradesNetted(), 12_000);
+    }
+
+}
