@@ -70,13 +70,13 @@ contract NettingEngineTest is Test {
         vm.prank(venue);
         netting.settleSession(_balancedSession(), 12_000);
 
-        assertEq(equity.balanceOf(deskA), 10_600e18);
-        assertEq(equity.balanceOf(deskB), 9_600e18);
-        assertEq(equity.balanceOf(deskC), 9_800e18);
+        assertEq(equity.balanceOf(deskA), 10_600e18, "deskA receives net long");
+        assertEq(equity.balanceOf(deskB), 9_600e18, "deskB delivers net short");
+        assertEq(equity.balanceOf(deskC), 9_800e18, "deskC delivers net short");
 
-        assertEq(cash.balanceOf(deskA), 4_877_000e6);
-        assertEq(cash.balanceOf(deskB), 5_082_000e6);
-        assertEq(cash.balanceOf(deskC), 5_041_000e6);
+        assertEq(cash.balanceOf(deskA), 4_877_000e6, "deskA pays net cash");
+        assertEq(cash.balanceOf(deskB), 5_082_000e6, "deskB receives net cash");
+        assertEq(cash.balanceOf(deskC), 5_041_000e6, "deskC receives net cash");
 
         assertEq(netting.sessionCount(), 1);
         assertEq(netting.grossTradesNetted(), 12_000);
@@ -87,8 +87,8 @@ contract NettingEngineTest is Test {
         vm.prank(venue);
         netting.settleSession(_balancedSession(), 12_000);
 
-        assertEq(equity.balanceOf(address(netting)), 0);
-        assertEq(cash.balanceOf(address(netting)), 0);
+        assertEq(equity.balanceOf(address(netting)), 0, "no security dust");
+        assertEq(cash.balanceOf(address(netting)), 0, "no cash dust");
     }
 
 }
