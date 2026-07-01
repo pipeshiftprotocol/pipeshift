@@ -82,4 +82,13 @@ contract NettingEngineTest is Test {
         assertEq(netting.grossTradesNetted(), 12_000);
     }
 
+    /// @dev The engine must not be left holding anything once a session closes.
+    function test_settleSession_leavesNoResidualInEngine() public {
+        vm.prank(venue);
+        netting.settleSession(_balancedSession(), 12_000);
+
+        assertEq(equity.balanceOf(address(netting)), 0);
+        assertEq(cash.balanceOf(address(netting)), 0);
+    }
+
 }
