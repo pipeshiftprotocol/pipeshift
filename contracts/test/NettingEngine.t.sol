@@ -100,4 +100,13 @@ contract NettingEngineTest is Test {
         netting.settleSession(session, 12_000);
     }
 
+    function test_settleSession_revertsWhenCashDoesNotNet() public {
+        NettingEngine.Session memory session = _balancedSession();
+        session.legs[1].cashDelta = 82_001e6;
+
+        vm.prank(venue);
+        vm.expectRevert(abi.encodeWithSelector(NettingEngine.CashDoesNotNet.selector, int256(1e6)));
+        netting.settleSession(session, 12_000);
+    }
+
 }
