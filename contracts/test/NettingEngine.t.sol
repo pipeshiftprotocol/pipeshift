@@ -91,4 +91,13 @@ contract NettingEngineTest is Test {
         assertEq(cash.balanceOf(address(netting)), 0, "no cash dust");
     }
 
+    function test_settleSession_revertsWhenQuantityDoesNotNet() public {
+        NettingEngine.Session memory session = _balancedSession();
+        session.legs[0].quantityDelta = 601e18;
+
+        vm.prank(venue);
+        vm.expectRevert(abi.encodeWithSelector(NettingEngine.QuantityDoesNotNet.selector, int256(1e18)));
+        netting.settleSession(session, 12_000);
+    }
+
 }
