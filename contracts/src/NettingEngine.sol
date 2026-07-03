@@ -41,6 +41,7 @@ contract NettingEngine is Owned {
     error NoLegs();
     error QuantityDoesNotNet(int256 residual);
     error CashDoesNotNet(int256 residual);
+    error DuplicateParty(address party);
     error ZeroParty();
 
     constructor(address owner_, IAssetRegistry registry_) Owned(owner_) {
@@ -70,6 +71,10 @@ contract NettingEngine is Owned {
         for (uint256 i; i < count; ++i) {
             Leg calldata leg = session.legs[i];
             if (leg.party == address(0)) revert ZeroParty();
+
+            for (uint256 j = i + 1; j < count; ++j) {
+                if (session.legs[j].party == leg.party) revert DuplicateParty(leg.party);
+            }
 
             quantityResidual += leg.quantityDelta;
             cashResidual += leg.cashDelta;
