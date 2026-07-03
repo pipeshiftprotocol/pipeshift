@@ -109,4 +109,17 @@ contract NettingEngineTest is Test {
         netting.settleSession(session, 12_000);
     }
 
+    function test_settleSession_revertsOnDuplicateParty() public {
+        NettingEngine.Leg[] memory legs = new NettingEngine.Leg[](2);
+        legs[0] = NettingEngine.Leg({party: deskA, quantityDelta: 100e18, cashDelta: -100e6});
+        legs[1] = NettingEngine.Leg({party: deskA, quantityDelta: -100e18, cashDelta: 100e6});
+
+        NettingEngine.Session memory session =
+            NettingEngine.Session({security: security, cash: address(cash), legs: legs});
+
+        vm.prank(venue);
+        vm.expectRevert(abi.encodeWithSelector(NettingEngine.DuplicateParty.selector, deskA));
+        netting.settleSession(session, 2);
+    }
+
 }
