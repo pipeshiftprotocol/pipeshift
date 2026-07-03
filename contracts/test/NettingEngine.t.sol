@@ -122,4 +122,11 @@ contract NettingEngineTest is Test {
         netting.settleSession(session, 2);
     }
 
+    function test_settleSession_revertsForUnregisteredVenue() public {
+        address rogue = address(0xBAD);
+        vm.prank(rogue);
+        vm.expectRevert(abi.encodeWithSelector(NettingEngine.NotAVenue.selector, rogue));
+        netting.settleSession(_balancedSession(), 12_000);
+    }
+
 }
