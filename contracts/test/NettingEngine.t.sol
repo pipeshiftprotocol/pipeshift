@@ -129,4 +129,13 @@ contract NettingEngineTest is Test {
         netting.settleSession(_balancedSession(), 12_000);
     }
 
+    function test_settleSession_revertsWhenSecurityHalted() public {
+        vm.prank(owner);
+        registry.halt(security, "corporate action");
+
+        vm.prank(venue);
+        vm.expectRevert(abi.encodeWithSelector(NettingEngine.SecurityNotListed.selector, security));
+        netting.settleSession(_balancedSession(), 12_000);
+    }
+
 }
