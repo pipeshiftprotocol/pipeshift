@@ -138,4 +138,14 @@ contract NettingEngineTest is Test {
         netting.settleSession(_balancedSession(), 12_000);
     }
 
+    function test_settleSession_revertsOnEmptySession() public {
+        NettingEngine.Session memory session = NettingEngine.Session({
+            security: security, cash: address(cash), legs: new NettingEngine.Leg[](0)
+        });
+
+        vm.prank(venue);
+        vm.expectRevert(NettingEngine.NoLegs.selector);
+        netting.settleSession(session, 0);
+    }
+
 }
