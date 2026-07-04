@@ -116,6 +116,7 @@ contract NettingEngine is Owned {
         emit SessionSettled(sessionCount, session.security, count, grossTrades);
     }
 
+    function transfersSaved(Session calldata session, uint256 grossTrades)
         external
         pure
         returns (uint256 gross, uint256 net)
