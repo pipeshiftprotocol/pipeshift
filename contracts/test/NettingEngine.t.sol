@@ -148,4 +148,21 @@ contract NettingEngineTest is Test {
         netting.settleSession(session, 0);
     }
 
+    /// @dev A desk that nets flat should not move value at all.
+    function test_settleSession_skipsPartiesThatNetFlat() public {
+        NettingEngine.Leg[] memory legs = new NettingEngine.Leg[](3);
+        legs[0] = NettingEngine.Leg({party: deskA, quantityDelta: 500e18, cashDelta: -100_000e6});
+        legs[1] = NettingEngine.Leg({party: deskB, quantityDelta: -500e18, cashDelta: 100_000e6});
+        legs[2] = NettingEngine.Leg({party: deskC, quantityDelta: 0, cashDelta: 0});
+
+        NettingEngine.Session memory session =
+            NettingEngine.Session({security: security, cash: address(cash), legs: legs});
+
+        vm.prank(venue);
+        netting.settleSession(session, 900);
+
+        assertEq(equity.balanceOf(deskC), 10_000e18, "flat desk untouched");
+        assertEq(cash.balanceOf(deskC), 5_000_000e6, "flat desk untouched");
+    }
+
 }
