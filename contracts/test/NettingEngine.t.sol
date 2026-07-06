@@ -165,4 +165,12 @@ contract NettingEngineTest is Test {
         assertEq(cash.balanceOf(deskC), 5_000_000e6, "flat desk untouched");
     }
 
+    function test_transfersSaved_reportsCompression() public view {
+        (uint256 gross, uint256 net) = netting.transfersSaved(_balancedSession(), 12_000);
+
+        assertEq(gross, 24_000, "gross settlement moves two legs per trade");
+        assertEq(net, 6, "netting moves two legs per active party");
+        assertLt(net, gross);
+    }
+
 }
