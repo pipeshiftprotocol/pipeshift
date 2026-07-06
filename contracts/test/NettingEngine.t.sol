@@ -173,4 +173,28 @@ contract NettingEngineTest is Test {
         assertLt(net, gross);
     }
 
+    function testFuzz_settleSession_conservesSupply(uint96 a, uint96 b) public {
+        uint256 quantityA = bound(a, 1, 5_000e18);
+        uint256 cashB = bound(b, 1, 1_000_000e6);
+
+        NettingEngine.Leg[] memory legs = new NettingEngine.Leg[](2);
+        legs[0] =
+            NettingEngine.Leg({party: deskA, quantityDelta: int256(quantityA), cashDelta: -int256(cashB)});
+        legs[1] =
+            NettingEngine.Leg({party: deskB, quantityDelta: -int256(quantityA), cashDelta: int256(cashB)});
+
+        NettingEngine.Session memory session =
+            NettingEngine.Session({security: security, cash: address(cash), legs: legs});
+
+        uint256 equityBefore = equity.totalSupply();
+        uint256 cashBefore = cash.totalSupply();
+
+        vm.prank(venue);
+        netting.settleSession(session, 100);
+
+        assertEq(equity.totalSupply(), equityBefore);
+        assertEq(cash.totalSupply(), cashBefore);
+        assertEq(equity.balanceOf(address(netting)), 0);
+        assertEq(cash.balanceOf(address(netting)), 0);
+    }
 }
