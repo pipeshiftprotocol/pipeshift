@@ -1,0 +1,52 @@
+{
+  "name": "@pipeshift/sdk",
+  "version": "0.2.0",
+  "description": "Settlement SDK for tokenized equities on Robinhood Chain: atomic DVP, multilateral netting, canonical asset registry.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "npm run build && tsc --noEmit",
+    "test": "npm run build && node --test --experimental-strip-types test/*.test.ts",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "settlement",
+    "tokenized-equities",
+    "delivery-versus-payment",
+    "netting",
+    "robinhood-chain",
+    "rwa"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pipeshiftprotocol/pipeshift.git",
+    "directory": "sdk-ts"
+  },
+  "homepage": "https://pipeshift.trade",
+  "dependencies": {
+    "viem": "^2.21.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "@types/node": "^22.7.0"
+  },
+  "bin": {
+    "pipeshift": "./dist/cli.js"
+  }
+}
