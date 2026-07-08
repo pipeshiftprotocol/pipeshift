@@ -72,3 +72,47 @@ Affirming and settling are separate steps on purpose. A venue affirms as soon as
 match, which is cheap and moves nothing. Settlement can then be triggered by anyone,
 batched, or deferred until the counterparties have funded, and the deadline on the
 instruction bounds how long that can take.
+
+## Quickstart
+
+```bash
+git clone https://github.com/pipeshiftprotocol/pipeshift.git
+cd pipeshift
+
+# contracts
+cd contracts
+forge install
+forge test
+
+# sdk and cli
+cd ../sdk-ts
+npm install
+npm test
+```
+
+Netting a trade file into the positions that actually have to move:
+
+```ts
+import { compressionOf, netTrades, withoutFlatLegs } from "@pipeshift/sdk";
+
+const session = netTrades(security, usdc, trades);
+const report = compressionOf(session, trades.length);
+
+console.log(`${report.grossTransfers} transfers gross, ${report.netTransfers} netted`);
+
+await client.settleSession(withoutFlatLegs(session), trades.length);
+```
+
+Settling a single matched trade:
+
+```ts
+import { PipeshiftClient, validate } from "@pipeshift/sdk";
+
+const client = new PipeshiftClient({ publicClient, walletClient, deployment });
+
+const problems = validate(instruction, now);
+if (problems.length > 0) throw new Error(problems.join(", "));
+
+const { id } = await client.affirm(instruction);
+await client.settle(id);
+```
