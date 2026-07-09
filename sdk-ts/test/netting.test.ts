@@ -47,3 +47,15 @@ test("netTrades always produces a session that nets to zero", () => {
   assert.equal(quantity, 0n);
   assert.equal(cash, 0n);
 });
+
+test("netTrades is deterministic regardless of trade order", () => {
+  const trades: Trade[] = [
+    { seller: deskA, buyer: deskB, quantity: 400n, consideration: 82_000n },
+    { seller: deskC, buyer: deskA, quantity: 150n, consideration: 30_000n },
+  ];
+
+  const forward = netTrades(SECURITY, CASH, trades);
+  const reversed = netTrades(SECURITY, CASH, [...trades].reverse());
+
+  assert.deepEqual(forward.legs, reversed.legs);
+});
