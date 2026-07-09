@@ -59,3 +59,21 @@ test("netTrades is deterministic regardless of trade order", () => {
 
   assert.deepEqual(forward.legs, reversed.legs);
 });
+
+test("netTrades rejects a self trade", () => {
+  assert.throws(
+    () => netTrades(SECURITY, CASH, [{ seller: deskA, buyer: deskA, quantity: 1n, consideration: 1n }]),
+    RangeError,
+  );
+});
+
+test("netTrades rejects non-positive amounts", () => {
+  assert.throws(
+    () => netTrades(SECURITY, CASH, [{ seller: deskA, buyer: deskB, quantity: 0n, consideration: 1n }]),
+    RangeError,
+  );
+  assert.throws(
+    () => netTrades(SECURITY, CASH, [{ seller: deskA, buyer: deskB, quantity: 1n, consideration: 0n }]),
+    RangeError,
+  );
+});
