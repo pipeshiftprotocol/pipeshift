@@ -88,3 +88,20 @@ test("assertBalanced surfaces the residual it found", () => {
     assert.equal(error.cashResidual, 0n);
   }
 });
+
+test("compressionOf reports the transfers removed", () => {
+  const session = {
+    security: SECURITY,
+    cash: CASH,
+    legs: [
+      { party: deskA, quantityDelta: 20n, cashDelta: -4_000n },
+      { party: deskB, quantityDelta: -20n, cashDelta: 4_000n },
+    ],
+  };
+
+  const report = compressionOf(session, 12_000);
+
+  assert.equal(report.grossTransfers, 24_000);
+  assert.equal(report.netTransfers, 4);
+  assert.ok(report.ratio > 0.999);
+});
