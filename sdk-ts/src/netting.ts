@@ -84,6 +84,24 @@ export function assertBalanced(legs: readonly Leg[]): void {
   }
 }
 
+/** Reports how many transfers a session removes against settling gross. */
+export function compressionOf(session: Session, grossTrades: number): CompressionReport {
+  const grossTransfers = grossTrades * 2;
+
+  let netTransfers = 0;
+  let flatParties = 0;
+
+  for (const leg of session.legs) {
+    const moves = (leg.quantityDelta !== 0n ? 1 : 0) + (leg.cashDelta !== 0n ? 1 : 0);
+    netTransfers += moves;
+    if (moves === 0) flatParties += 1;
+  }
+
+  const ratio = grossTransfers === 0 ? 0 : 1 - netTransfers / grossTransfers;
+
+  return { grossTransfers, netTransfers, flatParties, ratio };
+}
+
 /** Drops parties whose net position is flat on both legs. */
 export function withoutFlatLegs(session: Session): Session {
   return {
