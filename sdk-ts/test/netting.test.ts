@@ -77,3 +77,14 @@ test("netTrades rejects non-positive amounts", () => {
     RangeError,
   );
 });
+
+test("assertBalanced surfaces the residual it found", () => {
+  try {
+    assertBalanced([{ party: deskA, quantityDelta: 5n, cashDelta: 0n }]);
+    assert.fail("expected an imbalance error");
+  } catch (error) {
+    assert.ok(error instanceof NettingImbalanceError);
+    assert.equal(error.quantityResidual, 5n);
+    assert.equal(error.cashResidual, 0n);
+  }
+});
