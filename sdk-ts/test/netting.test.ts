@@ -122,3 +122,17 @@ test("withoutFlatLegs drops parties that net flat", () => {
   assert.equal(trimmed.legs.length, 2);
   assert.ok(!trimmed.legs.some((leg) => leg.party === deskC));
 });
+
+test("a round trip through the same desk nets flat", () => {
+  const trades: Trade[] = [
+    { seller: deskA, buyer: deskB, quantity: 100n, consideration: 20_000n },
+    { seller: deskB, buyer: deskA, quantity: 100n, consideration: 20_000n },
+  ];
+
+  const session = netTrades(SECURITY, CASH, trades);
+  const report = compressionOf(session, 2);
+
+  assert.equal(report.flatParties, 2);
+  assert.equal(report.netTransfers, 0);
+  assert.equal(withoutFlatLegs(session).legs.length, 0);
+});
