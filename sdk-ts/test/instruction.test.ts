@@ -50,3 +50,10 @@ test("validate reports every problem at once", () => {
   assert.ok(rejections.includes("self-trade"));
   assert.equal(rejections.length, 4);
 });
+
+test("isSettleable requires an affirmed status inside the deadline", () => {
+  assert.equal(isSettleable(Status.Affirmed, 100n, 50n), true);
+  assert.equal(isSettleable(Status.Affirmed, 100n, 101n), false);
+  assert.equal(isSettleable(Status.Settled, 100n, 50n), false);
+  assert.equal(isSettleable(Status.Cancelled, 100n, 50n), false);
+});
