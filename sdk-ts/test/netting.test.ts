@@ -105,3 +105,20 @@ test("compressionOf reports the transfers removed", () => {
   assert.equal(report.netTransfers, 4);
   assert.ok(report.ratio > 0.999);
 });
+
+test("withoutFlatLegs drops parties that net flat", () => {
+  const session = {
+    security: SECURITY,
+    cash: CASH,
+    legs: [
+      { party: deskA, quantityDelta: 20n, cashDelta: -4_000n },
+      { party: deskB, quantityDelta: -20n, cashDelta: 4_000n },
+      { party: deskC, quantityDelta: 0n, cashDelta: 0n },
+    ],
+  };
+
+  const trimmed = withoutFlatLegs(session);
+
+  assert.equal(trimmed.legs.length, 2);
+  assert.ok(!trimmed.legs.some((leg) => leg.party === deskC));
+});
