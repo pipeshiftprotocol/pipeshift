@@ -35,3 +35,18 @@ test("instructionId changes when any field changes", () => {
   assert.notEqual(base, instructionId(instruction({ buyer: VENUE })));
   assert.notEqual(base, instructionId(instruction({ deadline: 2_000_000_001n })));
 });
+
+test("validate accepts a well-formed instruction", () => {
+  assert.deepEqual(validate(instruction(), 1_900_000_000n), []);
+});
+
+test("validate reports every problem at once", () => {
+  const bad = instruction({ quantity: 0n, consideration: 0n, buyer: SELLER, deadline: 1n });
+  const rejections = validate(bad, 1_900_000_000n);
+
+  assert.ok(rejections.includes("zero-quantity"));
+  assert.ok(rejections.includes("zero-consideration"));
+  assert.ok(rejections.includes("deadline-in-past"));
+  assert.ok(rejections.includes("self-trade"));
+  assert.equal(rejections.length, 4);
+});
