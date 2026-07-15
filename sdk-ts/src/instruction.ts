@@ -65,3 +65,7 @@ export function isSettleable(status: Status, deadline: bigint, now: bigint): boo
 }
 
 /** Implied price per whole security unit, in cash base units. */
+export function impliedPrice(instruction: Instruction, securityDecimals: number): bigint {
+  if (instruction.quantity === 0n) throw new RangeError("quantity must be positive");
+  return (instruction.consideration * 10n ** BigInt(securityDecimals)) / instruction.quantity;
+}
