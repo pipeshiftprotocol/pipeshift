@@ -57,3 +57,12 @@ test("isSettleable requires an affirmed status inside the deadline", () => {
   assert.equal(isSettleable(Status.Settled, 100n, 50n), false);
   assert.equal(isSettleable(Status.Cancelled, 100n, 50n), false);
 });
+
+test("impliedPrice returns cash per whole security unit", () => {
+  const price = impliedPrice(instruction(), 18);
+  assert.equal(price, 205_000000n);
+});
+
+test("impliedPrice rejects a zero quantity", () => {
+  assert.throws(() => impliedPrice(instruction({ quantity: 0n }), 18), RangeError);
+});
