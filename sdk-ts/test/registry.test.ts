@@ -38,3 +38,17 @@ test("securityId is stable for the same ticker and ISIN", () => {
 test("securityId separates different underlyings", () => {
   assert.notEqual(securityId("AAPL", "US0378331005"), securityId("TSLA", "US88160R1014"));
 });
+
+test("isActive only accepts an active listing", () => {
+  assert.equal(isActive(security(Listing.Active)), true);
+  assert.equal(isActive(security(Listing.Halted)), false);
+  assert.equal(isActive(security(Listing.Delisted)), false);
+  assert.equal(isActive(security(Listing.None)), false);
+});
+
+test("describeListing renders every state", () => {
+  assert.equal(describeListing(Listing.Active), "active");
+  assert.equal(describeListing(Listing.Halted), "halted");
+  assert.equal(describeListing(Listing.Delisted), "delisted");
+  assert.equal(describeListing(Listing.None), "unlisted");
+});
