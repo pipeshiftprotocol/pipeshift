@@ -30,3 +30,11 @@ test("toBytes12 rejects an oversized value", () => {
 test("toBytes12 accepts a full-length ISIN", () => {
   assert.equal(toBytes12("US0378331005").length, 26);
 });
+
+test("securityId is stable for the same ticker and ISIN", () => {
+  assert.equal(securityId("AAPL", "US0378331005"), securityId("AAPL", "US0378331005"));
+});
+
+test("securityId separates different underlyings", () => {
+  assert.notEqual(securityId("AAPL", "US0378331005"), securityId("TSLA", "US88160R1014"));
+});
