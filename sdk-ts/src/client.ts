@@ -105,6 +105,7 @@ export class PipeshiftClient {
     });
   }
 
+  /** Submits a matched trade for settlement. */
   async affirm(instruction: Instruction): Promise<{ hash: Hash; id: Hex32 }> {
     const wallet = this.requireWallet("affirm");
 
