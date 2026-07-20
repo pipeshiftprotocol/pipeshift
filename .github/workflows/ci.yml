@@ -62,3 +62,8 @@ jobs:
         run: npx tsc --noEmit
       - name: Test
         run: node --test --experimental-strip-types test/*.test.ts
+      - name: Smoke test the CLI
+        run: |
+          node dist/cli.js net examples/session.json
+          node dist/cli.js validate examples/instruction.json
+          node dist/cli.js security AAPL US0378331005
