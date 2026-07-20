@@ -1,0 +1,15 @@
+# Default owner for anything not matched below.
+*                             @pipeshiftprotocol
+
+# Settlement path. Changes here need a contracts owner regardless of size.
+/contracts/src/               @0xnova @pipeshiftprotocol
+/contracts/src/NettingEngine.sol   @mikrohash @pipeshiftprotocol
+/contracts/src/AssetRegistry.sol   @mikrohash @pipeshiftprotocol
+/contracts/test/              @mikrohash @0xnova
+
+# Client surface.
+/sdk-ts/                      @luka @pipeshiftprotocol
+/docs/                        @luka
+
+# Repository infrastructure.
+/.github/                     @pipeshiftprotocol
