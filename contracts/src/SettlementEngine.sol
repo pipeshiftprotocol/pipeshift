@@ -7,6 +7,11 @@ import {IERC20} from "./interfaces/IERC20.sol";
 import {Owned} from "./libraries/Owned.sol";
 import {SafeTransfer} from "./libraries/SafeTransfer.sol";
 
+/// @title SettlementEngine
+/// @notice Atomic delivery-versus-payment for matched trades in tokenized equities.
+/// @dev The engine never holds positions between calls. Both legs move inside one
+///      transaction, so a failed cash leg reverts the security leg with it. Venues
+///      match and affirm, the engine settles.
 contract SettlementEngine is ISettlementEngine, Owned {
     using SafeTransfer for IERC20;
 
@@ -17,6 +22,7 @@ contract SettlementEngine is ISettlementEngine, Owned {
     mapping(address => bool) public isVenue;
     mapping(address => bool) public isCashAccepted;
 
+    /// @notice Number of instructions settled over the life of the contract.
     uint256 public settledCount;
 
     constructor(address owner_, IAssetRegistry registry_) Owned(owner_) {
@@ -28,20 +34,24 @@ contract SettlementEngine is ISettlementEngine, Owned {
         _;
     }
 
+    /// @notice Adds a venue permitted to affirm instructions.
     function registerVenue(address venue) external onlyOwner {
         isVenue[venue] = true;
         emit VenueRegistered(venue);
     }
 
+    /// @notice Removes a venue. Instructions it already affirmed stay settleable.
     function removeVenue(address venue) external onlyOwner {
         isVenue[venue] = false;
         emit VenueRemoved(venue);
     }
 
+    /// @notice Marks a token as acceptable for the cash leg.
     function setCashAccepted(address cash, bool accepted) external onlyOwner {
         isCashAccepted[cash] = accepted;
     }
 
+    /// @inheritdoc ISettlementEngine
     function affirm(Instruction calldata instruction) external onlyVenue returns (bytes32 id) {
         if (instruction.quantity == 0) revert ZeroQuantity();
         if (instruction.consideration == 0) revert ZeroConsideration();
@@ -59,10 +69,12 @@ contract SettlementEngine is ISettlementEngine, Owned {
         emit InstructionAffirmed(id, msg.sender, instruction.security);
     }
 
+    /// @inheritdoc ISettlementEngine
     function settle(bytes32 id) external {
         _settle(id);
     }
 
+    /// @inheritdoc ISettlementEngine
     function settleBatch(bytes32[] calldata ids) external {
         uint256 length = ids.length;
         for (uint256 i; i < length; ++i) {
@@ -70,6 +82,7 @@ contract SettlementEngine is ISettlementEngine, Owned {
         }
     }
 
+    /// @inheritdoc ISettlementEngine
     function cancel(bytes32 id) external {
         Status status = _status[id];
         if (status == Status.None) revert UnknownInstruction(id);
@@ -83,10 +96,12 @@ contract SettlementEngine is ISettlementEngine, Owned {
         emit InstructionCancelled(id, msg.sender);
     }
 
+    /// @inheritdoc ISettlementEngine
     function instructionOf(bytes32 id) external view returns (Instruction memory, Status) {
         return (_instructions[id], _status[id]);
     }
 
+    /// @inheritdoc ISettlementEngine
     function idOf(Instruction calldata instruction) public pure returns (bytes32) {
         return keccak256(
             abi.encode(
@@ -102,6 +117,8 @@ contract SettlementEngine is ISettlementEngine, Owned {
         );
     }
 
+    /// @dev Moves the security leg first, then the cash leg. Either both land or the
+    ///      whole call reverts, which is the only property that matters here.
     function _settle(bytes32 id) private {
         Status status = _status[id];
         if (status == Status.None) revert UnknownInstruction(id);
