@@ -3,6 +3,11 @@ pragma solidity ^0.8.24;
 
 import {IERC20} from "../interfaces/IERC20.sol";
 
+/// @title SafeTransfer
+/// @notice Transfer helpers that treat a missing return value as success.
+/// @dev Some tokenized equity wrappers predate the ERC20 return-value convention and
+///      return nothing at all. Requiring a bool from those tokens reverts on a transfer
+///      that actually succeeded, so decode only when there is data to decode.
 library SafeTransfer {
     error TransferFailed(address token, address from, address to, uint256 value);
 
