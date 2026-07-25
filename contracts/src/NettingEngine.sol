@@ -7,15 +7,29 @@ import {IERC20} from "./interfaces/IERC20.sol";
 import {Owned} from "./libraries/Owned.sol";
 import {SafeTransfer} from "./libraries/SafeTransfer.sol";
 
+/// @title NettingEngine
+/// @notice Collapses many matched trades in one security into one transfer per party.
+/// @dev Gross settlement moves value once per trade. A party that buys 400 shares and
+///      sells 380 shares in the same session only needs 20 shares to move. Netting
+///      computes that difference off the settlement path and moves the remainder,
+///      so gas and custody churn scale with participants rather than with trades.
 contract NettingEngine is Owned {
     using SafeTransfer for IERC20;
 
+    /// @notice One leg of a netting session, as reported by a venue.
+    /// @param party Account whose position changes.
+    /// @param quantityDelta Signed change in the security leg.
+    /// @param cashDelta Signed change in the cash leg.
     struct Leg {
         address party;
         int256 quantityDelta;
         int256 cashDelta;
     }
 
+    /// @notice A batch of legs to be netted and settled as one unit.
+    /// @param security Canonical registry id of the security being netted.
+    /// @param cash Token used for the cash leg.
+    /// @param legs Net position change per party.
     struct Session {
         bytes32 security;
         address cash;
@@ -24,8 +38,10 @@ contract NettingEngine is Owned {
 
     IAssetRegistry public immutable registry;
 
+    /// @notice Number of sessions settled over the life of the contract.
     uint256 public sessionCount;
 
+    /// @notice Total gross trades reported as collapsed, for observability only.
     uint256 public grossTradesNetted;
 
     mapping(address => bool) public isVenue;
@@ -48,16 +64,23 @@ contract NettingEngine is Owned {
         registry = registry_;
     }
 
+    /// @notice Adds a venue permitted to submit netting sessions.
     function registerVenue(address venue) external onlyOwner {
         isVenue[venue] = true;
         emit VenueRegistered(venue);
     }
 
+    /// @notice Removes a venue.
     function removeVenue(address venue) external onlyOwner {
         isVenue[venue] = false;
         emit VenueRemoved(venue);
     }
 
+    /// @notice Settles a netting session, moving one net amount per party per leg.
+    /// @param session Net position changes to apply.
+    /// @param grossTrades Number of underlying trades the session represents.
+    /// @dev Deltas must sum to zero on both legs. A session that does not net to zero
+    ///      would mint or burn value, so it is rejected rather than partially applied.
     function settleSession(Session calldata session, uint256 grossTrades) external {
         if (!isVenue[msg.sender]) revert NotAVenue(msg.sender);
 
@@ -116,6 +139,9 @@ contract NettingEngine is Owned {
         emit SessionSettled(sessionCount, session.security, count, grossTrades);
     }
 
+    /// @notice Reports how many transfers a session saves against gross settlement.
+    /// @dev Gross settlement moves two legs per trade. Netting moves at most two legs
+    ///      per party with a non-zero net, and parties that net flat move nothing.
     function transfersSaved(Session calldata session, uint256 grossTrades)
         external
         pure
