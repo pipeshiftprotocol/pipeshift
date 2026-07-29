@@ -196,3 +196,26 @@ sdk-ts/
 | Settlement core, DVP path | [@0xnova](https://github.com/pipeshiftprotocol) |
 | Netting, registry, invariants | [@mikrohash](https://github.com/pipeshiftprotocol) |
 | SDK, CLI, docs | [@luka](https://github.com/pipeshiftprotocol) |
+
+## Roadmap
+
+| Version | Scope | Status |
+|---|---|---|
+| v0.1 | Registry, atomic DVP, batch settlement | shipped |
+| v0.2 | Multilateral netting, session balance checks | shipped |
+| v0.3 | TypeScript SDK, offline CLI, deploy scripts | shipped |
+| v0.4 | Proof of reserves attestation per custodian | in progress |
+| v0.5 | Partial settlement with priority rules | planned |
+| v0.6 | Cross venue session aggregation | planned |
+
+No dates. Follow the commits.
+
+## What is not done
+
+Being explicit about scope is cheaper than being discovered.
+
+- Contracts are unaudited. Do not point real value at them yet.
+- Nothing is deployed to Robinhood Chain mainnet. Addresses will be published here when it is.
+- Proof of reserves is designed but not implemented, so custodian attestation is off chain today.
+- Settlement is all or nothing per instruction. Partial fills against a single instruction are v0.5.
+- The registry owner is a single key. Multisig handover is a launch requirement, not a code change.
