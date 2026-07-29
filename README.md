@@ -148,3 +148,51 @@ party                                      quantity            cash
 Amounts in every input file are decimal strings in base units. A number literal is
 rejected rather than parsed, because a float that reaches a settlement amount is a
 position break waiting to happen.
+
+## Contracts
+
+| Contract | Responsibility | Tests |
+|---|---|---|
+| [`SettlementEngine`](contracts/src/SettlementEngine.sol) | Atomic DVP for matched trades, single and batched | 14 |
+| [`NettingEngine`](contracts/src/NettingEngine.sol) | Multilateral netting sessions, balance enforced on chain | 11 |
+| [`AssetRegistry`](contracts/src/AssetRegistry.sol) | Canonical record per underlying, halt and delist controls | 13 |
+| [`SafeTransfer`](contracts/src/libraries/SafeTransfer.sol) | Transfer helpers that tolerate tokens returning no value | covered |
+| [`Owned`](contracts/src/libraries/Owned.sol) | Two step ownership, so control cannot be sent to a dead address | covered |
+
+The invariants the test suite exists to defend:
+
+- A failed cash leg leaves the security leg unmoved, and the instruction still affirmed.
+- A batch settles fully or reverts fully. No partial batch.
+- A netting session that does not sum to zero on both legs is rejected, never partially applied.
+- The netting engine holds no residual once a session closes.
+- Token supply is conserved across settlement, checked by fuzzing on both engines.
+- A halted security cannot settle, including instructions affirmed before the halt.
+
+## Architecture
+
+```
+contracts/
+  src/
+    SettlementEngine.sol      atomic DVP
+    NettingEngine.sol         multilateral netting
+    AssetRegistry.sol         canonical registry
+    interfaces/               ISettlementEngine, IAssetRegistry, IERC20
+    libraries/                SafeTransfer, Owned
+  test/                       38 tests including fuzz
+  script/Deploy.s.sol         registry first, then both engines
+
+sdk-ts/
+  src/
+    client.ts                 typed reads and writes over viem
+    netting.ts                trade set to net positions
+    instruction.ts            id computation and validation
+    registry.ts               canonical id helpers
+    cli.ts                    offline command line
+  test/                       23 tests against the built package
+```
+
+| Area | Owner |
+|---|---|
+| Settlement core, DVP path | [@0xnova](https://github.com/pipeshiftprotocol) |
+| Netting, registry, invariants | [@mikrohash](https://github.com/pipeshiftprotocol) |
+| SDK, CLI, docs | [@luka](https://github.com/pipeshiftprotocol) |
