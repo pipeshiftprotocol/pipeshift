@@ -3,6 +3,20 @@
 All notable changes to this project are documented here. This project follows
 [semantic versioning](https://semver.org).
 
+## [0.3.0] - 2026-07-29
+
+### Added
+- TypeScript SDK with typed clients over the settlement engine, netting engine and registry.
+- Offline CLI with `net`, `id`, `validate` and `security` commands.
+- Deploy script that wires the registry first, then both engines.
+- 23 SDK tests running against the built package rather than source.
+
+### Changed
+- Amounts in CLI input files must be decimal strings. Number literals are rejected instead
+  of parsed, because a float that reaches a settlement amount is a position break.
+- `Status` and `Listing` are const objects rather than TypeScript enums, so the package runs
+  unmodified under Node type stripping.
+
 ## [0.2.0] - 2026-07-16
 
 ### Added
