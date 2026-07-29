@@ -116,3 +116,35 @@ if (problems.length > 0) throw new Error(problems.join(", "));
 const { id } = await client.affirm(instruction);
 await client.settle(id);
 ```
+
+## CLI
+
+Every command is offline and read only. Nothing in the CLI signs a transaction or touches
+a key, so it is safe to point at production data while reasoning about a session.
+
+```bash
+$ pipeshift net examples/session.json
+security        0x8fa6e2b2d6e2f8f9a1c4d3e5b7a9c1e3f5d7b9a1c3e5f7d9b1a3c5e7f9d1b3a5
+cash            0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48
+trades in       4
+parties         3
+parties moving  2
+transfers gross 8
+transfers net   4
+compression     50.00%
+
+party                                      quantity            cash
+0x1111111111111111111111111111111111111111  -20000000000000000000       3910000000
+0x2222222222222222222222222222222222222222   20000000000000000000      -3910000000
+```
+
+| Command | What it does |
+|---|---|
+| `pipeshift net <file>` | Collapses a trade file into one net position per party |
+| `pipeshift id <file>` | Computes the settlement id of an instruction |
+| `pipeshift validate <file>` | Checks an instruction against the rules the engine enforces |
+| `pipeshift security <ticker> <isin>` | Computes the canonical registry id for an underlying |
+
+Amounts in every input file are decimal strings in base units. A number literal is
+rejected rather than parsed, because a float that reaches a settlement amount is a
+position break waiting to happen.
