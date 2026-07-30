@@ -1,6 +1,6 @@
 {
   "name": "@pipeshift/sdk",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Settlement SDK for tokenized equities on Robinhood Chain: atomic DVP, multilateral netting, canonical asset registry.",
   "license": "MIT",
   "type": "module",
@@ -23,7 +23,11 @@
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "npm run build && tsc --noEmit",
     "test": "npm run build && node --test --experimental-strip-types test/*.test.ts",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "e2e": "node --test --experimental-strip-types e2e/settle.e2e.ts",
+    "e2e:full": "npm run build && node e2e/run.mjs",
+    "devnet": "cd ../contracts && forge script script/Devnet.s.sol --rpc-url ${PIPESHIFT_RPC_URL:-http://127.0.0.1:8545} --broadcast",
+    "e2e:fork": "npm run build && PIPESHIFT_FORK_URL=${PIPESHIFT_FORK_URL:-https://rpc.mainnet.chain.robinhood.com} PIPESHIFT_E2E_PORT=${PIPESHIFT_E2E_PORT:-8551} node e2e/run.mjs"
   },
   "keywords": [
     "settlement",
