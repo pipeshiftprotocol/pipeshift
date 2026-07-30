@@ -3,6 +3,24 @@
 All notable changes to this project are documented here. This project follows
 [semantic versioning](https://semver.org).
 
+## [0.4.0] - 2026-07-30
+
+### Added
+- End to end suite that runs against a real node: deploys the contracts, affirms and settles
+  a matched trade, checks that a failing cash leg leaves the security leg unmoved, and settles
+  a netting session computed by the SDK.
+- `e2e:full` starts anvil, deploys the devnet fixture and tears the node down afterwards.
+- `e2e:fork` runs the same suite against a fork of Robinhood Chain, so the contracts execute
+  with the chain's own id, gas parameters and EVM revision. Reports `chain id 4663`.
+- `script/Devnet.s.sol`: a complete working deployment for local runs, with demo tokens, a
+  listed security, a registered venue and funded parties.
+- CI jobs for both, with the fork job allowed to fail so a public endpoint's bad day does not
+  block a merge.
+
+### Fixed
+- The devnet fixture funded only the two sides of the first trade. A netting session moves
+  value in both directions for every participant, so every role is now funded on both legs.
+
 ## [0.3.0] - 2026-07-29
 
 ### Added

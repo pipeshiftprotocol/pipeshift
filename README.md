@@ -9,7 +9,8 @@ Venues match. Pipeshift settles.
 [![License: MIT](https://img.shields.io/badge/license-MIT-0AE8A6.svg?style=flat-square)](LICENSE)
 [![Solidity](https://img.shields.io/badge/solidity-0.8.24-0AE8A6.svg?style=flat-square)](contracts/foundry.toml)
 [![TypeScript](https://img.shields.io/badge/typescript-5.6-0AE8A6.svg?style=flat-square)](sdk-ts/package.json)
-[![Tests](https://img.shields.io/badge/tests-61%20passing-0AE8A6.svg?style=flat-square)](.github/workflows/ci.yml)
+[![Tests](https://img.shields.io/badge/tests-67%20passing-0AE8A6.svg?style=flat-square)](.github/workflows/ci.yml)
+[![E2E](https://img.shields.io/badge/e2e-live%20node%20%2B%20chain%20fork-0AE8A6.svg?style=flat-square)](sdk-ts/e2e)
 [![Chain](https://img.shields.io/badge/chain-Robinhood%20Chain-221B1D.svg?style=flat-square)](https://pipeshift.trade)
 
 [**What it does**](#what-it-does) ·
@@ -76,12 +77,11 @@ instruction bounds how long that can take.
 ## Quickstart
 
 ```bash
-git clone https://github.com/pipeshiftprotocol/pipeshift.git
+git clone --recurse-submodules https://github.com/pipeshiftprotocol/pipeshift.git
 cd pipeshift
 
 # contracts
 cd contracts
-forge install
 forge test
 
 # sdk and cli
@@ -89,6 +89,33 @@ cd ../sdk-ts
 npm install
 npm test
 ```
+
+### Run it against a real node
+
+The unit suites prove the logic. These prove the whole thing works end to end: a real
+node, a real deployment, real transactions and real receipts.
+
+```bash
+cd sdk-ts
+
+# starts anvil, deploys the devnet fixture, settles against it, tears the node down
+npm run e2e:full
+
+# same suite against a fork of Robinhood Chain, so the contracts run with the
+# chain's own id, gas parameters and EVM revision
+npm run e2e:fork
+```
+
+Both are green today. The fork run reports `chain id 4663` and settles a matched trade, a
+reverting trade and a netting session against forked state.
+
+What the e2e suite asserts, on chain rather than in a harness:
+
+- A matched trade moves both legs, and the SDK computes the same instruction id the contract stores.
+- A trade whose cash leg cannot move reverts, and the security leg stays where it was.
+- A netting session computed by the SDK settles, and only the net quantity moves.
+- An unbalanced session is rejected locally, before it costs gas.
+- A client built without a wallet refuses to write at all.
 
 Netting a trade file into the positions that actually have to move:
 
@@ -215,7 +242,7 @@ No dates. Follow the commits.
 Being explicit about scope is cheaper than being discovered.
 
 - Contracts are unaudited. Do not point real value at them yet.
-- Nothing is deployed to Robinhood Chain mainnet. Addresses will be published here when it is.
+- Nothing is deployed to Robinhood Chain **mainnet**. The end to end suite deploys to a local node and to a fork of mainnet, which exercises the code but publishes no addresses. Real addresses appear here when they exist.
 - Proof of reserves is designed but not implemented, so custodian attestation is off chain today.
 - Settlement is all or nothing per instruction. Partial fills against a single instruction are v0.5.
 - The registry owner is a single key. Multisig handover is a launch requirement, not a code change.
