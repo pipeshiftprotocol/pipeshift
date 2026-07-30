@@ -3,7 +3,6 @@ dist/
 out/
 cache/
 broadcast/
-contracts/lib/
 .env
 .DS_Store
 *.log
