@@ -219,3 +219,21 @@ Being explicit about scope is cheaper than being discovered.
 - Proof of reserves is designed but not implemented, so custodian attestation is off chain today.
 - Settlement is all or nothing per instruction. Partial fills against a single instruction are v0.5.
 - The registry owner is a single key. Multisig handover is a launch requirement, not a code change.
+
+## Contributing
+
+Useful first contributions: an invariant the fuzz tests miss, a token behaviour
+`SafeTransfer` does not tolerate, or a netting case that produces a residual.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). Every pull request needs a test that fails before
+the change and passes after.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
+
+<div align="center">
+
+[pipeshift.trade](https://pipeshift.trade) · [@pipeshift_ai](https://x.com/pipeshift_ai)
+
+</div>
