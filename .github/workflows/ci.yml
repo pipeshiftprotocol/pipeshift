@@ -68,3 +68,52 @@ jobs:
           node dist/cli.js net examples/session.json
           node dist/cli.js validate examples/instruction.json
           node dist/cli.js security AAPL US0378331005
+
+  e2e:
+    name: End to end on a live node
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: sdk-ts/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+        working-directory: sdk-ts
+      - name: Deploy to a local node and settle against it
+        run: npm run e2e:full
+        working-directory: sdk-ts
+
+  e2e-fork:
+    name: End to end on a Robinhood Chain fork
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: sdk-ts/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+        working-directory: sdk-ts
+      # Forks a public endpoint, so this job is allowed to fail on a bad upstream
+      # day rather than blocking a merge on someone else's uptime.
+      - name: Settle against a fork of the real chain
+        run: npm run e2e:fork
+        working-directory: sdk-ts
+        env:
+          PIPESHIFT_FORK_URL: ${{ vars.PIPESHIFT_RPC_URL || 'https://rpc.mainnet.chain.robinhood.com' }}
