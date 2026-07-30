@@ -1,6 +1,6 @@
 <div align="center">
 
-# Pipeshift
+<img src="assets/banner.jpg" alt="Pipeshift" width="100%">
 
 ### The settlement layer for tokenized equities on Robinhood Chain
 
