@@ -150,9 +150,13 @@ for (const [key, value] of Object.entries(addresses)) {
 }
 
 console.error("\nrunning the e2e suite\n");
+/* The default TAP output is thorough and noisy. A demo or a terminal run reads
+   better with the spec reporter, so allow it to be selected per run. */
+const reporter = process.env.PIPESHIFT_TEST_REPORTER ?? "tap";
+
 const suite = spawnSync(
   process.execPath,
-  ["--test", "--experimental-strip-types", "e2e/settle.e2e.ts"],
+  ["--test", `--test-reporter=${reporter}`, "--experimental-strip-types", "e2e/settle.e2e.ts"],
   {
     stdio: "inherit",
     env: {
