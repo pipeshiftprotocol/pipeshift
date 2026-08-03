@@ -19,6 +19,12 @@ contract SettlementEngine is ISettlementEngine, Owned {
 
     mapping(bytes32 => Instruction) private _instructions;
     mapping(bytes32 => Status) private _status;
+
+    /// @dev How much of each leg an instruction has already delivered. Both are needed:
+    ///      the cash filled is not derivable from the quantity filled, because the final
+    ///      fill takes the remainder rather than a rounded share.
+    mapping(bytes32 => uint256) private _filledQuantity;
+    mapping(bytes32 => uint256) private _filledConsideration;
     mapping(address => bool) public isVenue;
     mapping(address => bool) public isCashAccepted;
 
@@ -102,6 +108,17 @@ contract SettlementEngine is ISettlementEngine, Owned {
     }
 
     /// @inheritdoc ISettlementEngine
+    function fillOf(bytes32 id)
+        external
+        view
+        returns (uint256 filledQuantity, uint256 filledConsideration, uint256 remainingQuantity)
+    {
+        filledQuantity = _filledQuantity[id];
+        filledConsideration = _filledConsideration[id];
+        remainingQuantity = _instructions[id].quantity - filledQuantity;
+    }
+
+    /// @inheritdoc ISettlementEngine
     function idOf(Instruction calldata instruction) public pure returns (bytes32) {
         return keccak256(
             abi.encode(
@@ -117,9 +134,28 @@ contract SettlementEngine is ISettlementEngine, Owned {
         );
     }
 
-    /// @dev Moves the security leg first, then the cash leg. Either both land or the
-    ///      whole call reverts, which is the only property that matters here.
+    /// @inheritdoc ISettlementEngine
+    function settlePartial(bytes32 id, uint256 quantity) external {
+        if (quantity == 0) revert ZeroQuantity();
+        _fill(id, quantity);
+    }
+
+    /// @dev Settles the whole outstanding amount, which for an untouched instruction is
+    ///      the entire quantity. Expressing it through the same path as a partial fill
+    ///      means there is one settlement routine to reason about rather than two.
     function _settle(bytes32 id) private {
+        uint256 remaining = _instructions[id].quantity - _filledQuantity[id];
+        _fill(id, remaining);
+    }
+
+    /// @dev Moves the security leg first, then the cash leg. Either both land or the whole
+    ///      call reverts, which is the only property that matters here.
+    ///
+    ///      The cash owed for a partial fill is its pro rata share, rounded down, except
+    ///      for the fill that closes the instruction: that one takes whatever consideration
+    ///      is left. Rounding therefore cannot leak value in either direction, however the
+    ///      caller chooses to slice the instruction up.
+    function _fill(bytes32 id, uint256 quantity) private {
         Status status = _status[id];
         if (status == Status.None) revert UnknownInstruction(id);
         if (status != Status.Affirmed) revert NotAffirmed(id, status);
@@ -128,16 +164,33 @@ contract SettlementEngine is ISettlementEngine, Owned {
         if (block.timestamp > ins.deadline) revert InstructionExpired(id, ins.deadline);
         if (!registry.isSettleable(ins.security)) revert SecurityNotListed(ins.security);
 
-        address securityToken = registry.securityOf(ins.security).token;
+        uint256 filled = _filledQuantity[id];
+        uint256 remaining = ins.quantity - filled;
+        if (quantity > remaining) revert ExceedsRemaining(id, quantity, remaining);
 
-        _status[id] = Status.Settled;
-        unchecked {
-            ++settledCount;
+        uint256 consideration;
+        bool closes = quantity == remaining;
+
+        if (closes) {
+            consideration = ins.consideration - _filledConsideration[id];
+            _status[id] = Status.Settled;
+            unchecked {
+                ++settledCount;
+            }
+        } else {
+            consideration = (ins.consideration * quantity) / ins.quantity;
         }
 
-        IERC20(securityToken).safeTransferFrom(ins.seller, ins.buyer, ins.quantity);
-        IERC20(ins.cash).safeTransferFrom(ins.buyer, ins.seller, ins.consideration);
+        _filledQuantity[id] = filled + quantity;
+        _filledConsideration[id] += consideration;
 
-        emit InstructionSettled(id, ins.seller, ins.buyer);
+        address securityToken = registry.securityOf(ins.security).token;
+
+        IERC20(securityToken).safeTransferFrom(ins.seller, ins.buyer, quantity);
+        IERC20(ins.cash).safeTransferFrom(ins.buyer, ins.seller, consideration);
+
+        emit InstructionFilled(id, quantity, consideration, remaining - quantity);
+
+        if (closes) emit InstructionSettled(id, ins.seller, ins.buyer);
     }
 }

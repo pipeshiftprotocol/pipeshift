@@ -37,6 +37,9 @@ interface ISettlementEngine {
 
     event InstructionAffirmed(bytes32 indexed id, address indexed venue, bytes32 indexed security);
     event InstructionSettled(bytes32 indexed id, address indexed seller, address indexed buyer);
+    event InstructionFilled(
+        bytes32 indexed id, uint256 quantity, uint256 consideration, uint256 remainingQuantity
+    );
     event InstructionCancelled(bytes32 indexed id, address indexed by);
     event VenueRegistered(address indexed venue);
     event VenueRemoved(address indexed venue);
@@ -52,6 +55,7 @@ interface ISettlementEngine {
     error SecurityNotListed(bytes32 security);
     error CashNotAccepted(address cash);
     error SelfTrade(address party);
+    error ExceedsRemaining(bytes32 id, uint256 requested, uint256 remaining);
 
     /// @notice Registers a matched trade for settlement.
     /// @dev Only a registered venue may affirm. Affirming does not move value.
@@ -61,6 +65,19 @@ interface ISettlementEngine {
     /// @notice Settles an affirmed instruction, moving both legs atomically.
     /// @dev Callable by anyone. Both parties must have approved this contract.
     function settle(bytes32 id) external;
+
+    /// @notice Settles part of an affirmed instruction.
+    /// @dev Inventory arrives late and in pieces, so an instruction can be closed over
+    ///      several fills. Each fill is itself atomic across both legs, and the fill that
+    ///      closes the instruction takes the remaining consideration rather than a rounded
+    ///      share, so slicing an instruction never changes what the parties end up with.
+    function settlePartial(bytes32 id, uint256 quantity) external;
+
+    /// @notice Returns how much of an instruction has been delivered so far.
+    function fillOf(bytes32 id)
+        external
+        view
+        returns (uint256 filledQuantity, uint256 filledConsideration, uint256 remainingQuantity);
 
     /// @notice Settles a batch of affirmed instructions.
     /// @dev Reverts if any instruction in the batch fails, so a batch is all or nothing.
