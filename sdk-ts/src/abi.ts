@@ -32,6 +32,27 @@ export const settlementEngineAbi = [
   },
   {
     type: "function",
+    name: "settlePartial",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "id", type: "bytes32" },
+      { name: "quantity", type: "uint256" },
+    ],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "fillOf",
+    stateMutability: "view",
+    inputs: [{ name: "id", type: "bytes32" }],
+    outputs: [
+      { name: "filledQuantity", type: "uint256" },
+      { name: "filledConsideration", type: "uint256" },
+      { name: "remainingQuantity", type: "uint256" },
+    ],
+  },
+  {
+    type: "function",
     name: "settleBatch",
     stateMutability: "nonpayable",
     inputs: [{ name: "ids", type: "bytes32[]" }],

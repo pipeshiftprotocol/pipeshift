@@ -9,7 +9,16 @@ import type { Address as ViemAddress, Hash, PublicClient, WalletClient } from "v
 import { assetRegistryAbi, nettingEngineAbi, settlementEngineAbi } from "./abi.js";
 import { instructionId } from "./instruction.js";
 import { assertBalanced, withoutFlatLegs } from "./netting.js";
-import { Listing, Status, type Address, type Hex32, type Instruction, type Security, type Session } from "./types.js";
+import {
+  Listing,
+  Status,
+  type Address,
+  type Fill,
+  type Hex32,
+  type Instruction,
+  type Security,
+  type Session,
+} from "./types.js";
 
 /** Addresses of the deployed Pipeshift contracts. */
 export interface Deployment {
@@ -119,6 +128,40 @@ export class PipeshiftClient {
     });
 
     return { hash, id: instructionId(instruction) };
+  }
+
+  /** Reads how much of an instruction has been delivered so far. */
+  async fillOf(id: Hex32): Promise<Fill> {
+    const [quantity, consideration, remaining] = await this.publicClient.readContract({
+      address: this.deployment.settlementEngine as ViemAddress,
+      abi: settlementEngineAbi,
+      functionName: "fillOf",
+      args: [id],
+    });
+
+    return { quantity, consideration, remaining };
+  }
+
+  /**
+   * Settles part of an instruction.
+   *
+   * Inventory arrives late and in pieces, so an instruction can be closed over
+   * several fills. Each fill is atomic across both legs, and the fill that closes
+   * the instruction takes the remaining consideration rather than a rounded share,
+   * so slicing never changes what the parties end up with.
+   */
+  async settlePartial(id: Hex32, quantity: bigint): Promise<Hash> {
+    const wallet = this.requireWallet("settlePartial");
+    if (quantity <= 0n) throw new RangeError("quantity must be positive");
+
+    return wallet.writeContract({
+      address: this.deployment.settlementEngine as ViemAddress,
+      abi: settlementEngineAbi,
+      functionName: "settlePartial",
+      args: [id, quantity],
+      chain: wallet.chain,
+      account: wallet.account!,
+    });
   }
 
   /** Settles one affirmed instruction. */

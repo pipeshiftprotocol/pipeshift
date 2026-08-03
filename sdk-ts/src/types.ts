@@ -90,6 +90,16 @@ export interface CompressionReport {
   ratio: number;
 }
 
+/** How much of an instruction has been delivered so far. */
+export interface Fill {
+  /** Security units already delivered. */
+  quantity: bigint;
+  /** Cash already paid against those units. */
+  consideration: bigint;
+  /** Security units still outstanding. */
+  remaining: bigint;
+}
+
 /** A trade as reported by a venue, before netting. */
 export interface Trade {
   seller: Address;
