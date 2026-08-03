@@ -9,7 +9,7 @@ Venues match. Pipeshift settles.
 [![License: MIT](https://img.shields.io/badge/license-MIT-0AE8A6.svg?style=flat-square)](LICENSE)
 [![Solidity](https://img.shields.io/badge/solidity-0.8.24-0AE8A6.svg?style=flat-square)](contracts/foundry.toml)
 [![TypeScript](https://img.shields.io/badge/typescript-5.6-0AE8A6.svg?style=flat-square)](sdk-ts/package.json)
-[![Tests](https://img.shields.io/badge/tests-67%20passing-0AE8A6.svg?style=flat-square)](.github/workflows/ci.yml)
+[![Tests](https://img.shields.io/badge/tests-80%20passing-0AE8A6.svg?style=flat-square)](.github/workflows/ci.yml)
 [![E2E](https://img.shields.io/badge/e2e-live%20node%20%2B%20chain%20fork-0AE8A6.svg?style=flat-square)](sdk-ts/e2e)
 [![Chain](https://img.shields.io/badge/chain-Robinhood%20Chain-221B1D.svg?style=flat-square)](https://pipeshift.trade)
 
@@ -180,7 +180,7 @@ position break waiting to happen.
 
 | Contract | Responsibility | Tests |
 |---|---|---|
-| [`SettlementEngine`](contracts/src/SettlementEngine.sol) | Atomic DVP for matched trades, single and batched | 14 |
+| [`SettlementEngine`](contracts/src/SettlementEngine.sol) | Atomic DVP for matched trades, single, batched and partial | 26 |
 | [`NettingEngine`](contracts/src/NettingEngine.sol) | Multilateral netting sessions, balance enforced on chain | 11 |
 | [`AssetRegistry`](contracts/src/AssetRegistry.sol) | Canonical record per underlying, halt and delist controls | 13 |
 | [`SafeTransfer`](contracts/src/libraries/SafeTransfer.sol) | Transfer helpers that tolerate tokens returning no value | covered |
@@ -193,6 +193,7 @@ The invariants the test suite exists to defend:
 - A netting session that does not sum to zero on both legs is rejected, never partially applied.
 - The netting engine holds no residual once a session closes.
 - Token supply is conserved across settlement, checked by fuzzing on both engines.
+- However an instruction is sliced into fills, the parties end up exactly where a single settlement would have left them.
 - A halted security cannot settle, including instructions affirmed before the halt.
 
 ## Architecture
@@ -232,7 +233,7 @@ sdk-ts/
 | v0.2 | Multilateral netting, session balance checks | shipped |
 | v0.3 | TypeScript SDK, offline CLI, deploy scripts | shipped |
 | v0.4 | Proof of reserves attestation per custodian | in progress |
-| v0.5 | Partial settlement with priority rules | planned |
+| v0.5 | Partial settlement over several fills | shipped |
 | v0.6 | Cross venue session aggregation | planned |
 
 No dates. Follow the commits.
@@ -244,7 +245,6 @@ Being explicit about scope is cheaper than being discovered.
 - Contracts are unaudited. Do not point real value at them yet.
 - Nothing is deployed to Robinhood Chain **mainnet**. The end to end suite deploys to a local node and to a fork of mainnet, which exercises the code but publishes no addresses. Real addresses appear here when they exist.
 - Proof of reserves is designed but not implemented, so custodian attestation is off chain today.
-- Settlement is all or nothing per instruction. Partial fills against a single instruction are v0.5.
 - The registry owner is a single key. Multisig handover is a launch requirement, not a code change.
 
 ## Contributing

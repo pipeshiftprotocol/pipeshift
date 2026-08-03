@@ -3,6 +3,29 @@
 All notable changes to this project are documented here. This project follows
 [semantic versioning](https://semver.org).
 
+## [0.5.0] - 2026-08-03
+
+### Added
+- `settlePartial(id, quantity)`: an instruction can now be closed over several fills, because
+  real inventory arrives late and in pieces. Each fill is atomic across both legs, exactly like
+  a full settlement.
+- `fillOf(id)` reports how much of an instruction has been delivered and what is outstanding.
+- `InstructionFilled` event carrying the filled quantity, the cash paid and what remains.
+- 12 contract tests and one end to end test covering partial settlement, including a fuzz test
+  asserting that any slicing of an instruction leaves the parties exactly where a single
+  settlement would have.
+- SDK support: `client.settlePartial()` and `client.fillOf()`.
+
+### Changed
+- `settle` is now expressed through the same routine as a partial fill, so there is one
+  settlement path to reason about rather than two. It closes whatever is outstanding, which for
+  an untouched instruction is the entire quantity.
+
+### Notes
+- The cash owed for a partial fill is its pro rata share rounded down, except for the fill that
+  closes the instruction, which takes whatever consideration is left. Rounding therefore cannot
+  leak value in either direction however the caller slices the instruction.
+
 ## [0.4.0] - 2026-07-30
 
 ### Added

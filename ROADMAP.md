@@ -14,6 +14,10 @@ rejected rather than partially applied.
 
 **v0.3 Client surface.** TypeScript SDK over viem, offline CLI, deploy scripts.
 
+**v0.5 Partial settlement.** An instruction can be closed over several fills. Each fill is
+atomic across both legs, and the fill that closes the instruction takes the remaining
+consideration rather than a rounded share, so slicing never changes the outcome.
+
 ## In progress
 
 **v0.4 Proof of reserves.** Per custodian attestation that the underlying backing a listed
@@ -22,11 +26,6 @@ records a custodian per security. This adds the attestation and a staleness boun
 venue can refuse to settle against an attestation older than its own risk policy allows.
 
 ## Planned
-
-**v0.5 Partial settlement.** Today an instruction settles fully or not at all. Real
-inventory arrives late and in pieces. This adds partial settlement against a single
-instruction with explicit priority rules, without weakening atomicity: each partial
-settlement is itself atomic across both legs.
 
 **v0.6 Cross venue sessions.** Netting is currently per venue, because a venue submits the
 session it computed. Two venues trading the same underlying against overlapping desks still
