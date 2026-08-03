@@ -234,6 +234,46 @@ describe("settlement against a live node", () => {
     assert.equal(after.sellerEquity, before.sellerEquity, "the security leg did not move");
   });
 
+  it("closes an instruction over several fills", async () => {
+    const venueClient = new PipeshiftClient({
+      publicClient,
+      walletClient: walletFor("venue"),
+      deployment,
+    });
+
+    const before = await balances(publicClient, { equity, cash, seller, buyer });
+
+    const instruction: Instruction = {
+      security,
+      cash,
+      seller,
+      buyer,
+      quantity: 90n * 10n ** 18n,
+      // deliberately indivisible by three, so rounding has somewhere to hide
+      consideration: 10_000_001n,
+      deadline: BigInt(Math.floor(Date.now() / 1000) + 3_600),
+      venue: privateKeyToAccount(KEYS.venue).address,
+    };
+
+    const { hash } = await venueClient.affirm(instruction);
+    await publicClient.waitForTransactionReceipt({ hash });
+    const id = instructionId(instruction);
+
+    for (const slice of [30n, 30n, 30n]) {
+      const fillHash = await venueClient.settlePartial(id, slice * 10n ** 18n);
+      await publicClient.waitForTransactionReceipt({ hash: fillHash });
+    }
+
+    const fill = await venueClient.fillOf(id);
+    assert.equal(fill.remaining, 0n, "instruction fully delivered");
+    assert.equal(fill.quantity, instruction.quantity);
+    assert.equal(fill.consideration, instruction.consideration, "no cash lost to rounding");
+
+    const after = await balances(publicClient, { equity, cash, seller, buyer });
+    assert.equal(after.buyerEquity - before.buyerEquity, instruction.quantity);
+    assert.equal(after.sellerCash - before.sellerCash, instruction.consideration);
+  });
+
   it("settles a netting session computed by the sdk", async () => {
     const venueClient = new PipeshiftClient({
       publicClient,
