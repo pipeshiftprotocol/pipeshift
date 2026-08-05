@@ -49,6 +49,7 @@ contract NettingEngine is Owned {
     event SessionSettled(
         uint256 indexed session, bytes32 indexed security, uint256 legs, uint256 grossTrades
     );
+    event SessionAggregated(uint256 indexed session, bytes32 indexed security, address[] venues);
     event VenueRegistered(address indexed venue);
     event VenueRemoved(address indexed venue);
 
@@ -59,6 +60,8 @@ contract NettingEngine is Owned {
     error CashDoesNotNet(int256 residual);
     error DuplicateParty(address party);
     error ZeroParty();
+    error NoVenues();
+    error VenueNotRegistered(address venue);
 
     constructor(address owner_, IAssetRegistry registry_) Owned(owner_) {
         registry = registry_;
@@ -83,7 +86,12 @@ contract NettingEngine is Owned {
     ///      would mint or burn value, so it is rejected rather than partially applied.
     function settleSession(Session calldata session, uint256 grossTrades) external {
         if (!isVenue[msg.sender]) revert NotAVenue(msg.sender);
+        _settleSession(session, grossTrades);
+    }
 
+    /// @dev The settlement routine itself, shared by the single venue and the aggregated
+    ///      entry points so there is one place where value moves.
+    function _settleSession(Session calldata session, uint256 grossTrades) private {
         uint256 count = session.legs.length;
         if (count == 0) revert NoLegs();
         if (!registry.isSettleable(session.security)) revert SecurityNotListed(session.security);
@@ -137,6 +145,35 @@ contract NettingEngine is Owned {
         }
 
         emit SessionSettled(sessionCount, session.security, count, grossTrades);
+    }
+
+    /// @notice Settles one session on behalf of several venues at once.
+    /// @param session Net positions computed across every venue in `venues`.
+    /// @param venues The venues whose books this session covers, recorded for audit.
+    /// @param grossTrades Number of underlying trades the session represents.
+    /// @dev Netting per venue leaves money on the table: a desk that is long on one venue
+    ///      and short the same name on another still moves both positions in full. This
+    ///      settles the combined session instead, so those cancel before anything moves.
+    ///
+    ///      Every named venue must be registered, and the caller must be one of them. That
+    ///      keeps an outside party from settling somebody else's book, while still letting
+    ///      any participant in the group submit the result.
+    function settleAggregated(Session calldata session, address[] calldata venues, uint256 grossTrades)
+        external
+    {
+        uint256 count = venues.length;
+        if (count == 0) revert NoVenues();
+
+        bool callerIncluded;
+        for (uint256 i; i < count; ++i) {
+            if (!isVenue[venues[i]]) revert VenueNotRegistered(venues[i]);
+            if (venues[i] == msg.sender) callerIncluded = true;
+        }
+        if (!callerIncluded) revert NotAVenue(msg.sender);
+
+        _settleSession(session, grossTrades);
+
+        emit SessionAggregated(sessionCount, session.security, venues);
     }
 
     /// @notice Reports how many transfers a session saves against gross settlement.
