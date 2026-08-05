@@ -18,6 +18,9 @@ rejected rather than partially applied.
 atomic across both legs, and the fill that closes the instruction takes the remaining
 consideration rather than a rounded share, so slicing never changes the outcome.
 
+**v0.6 Cross venue sessions.** A session can cover several venues at once, so desks that trade
+the same name on more than one venue net across all of them before anything settles.
+
 ## In progress
 
 **v0.4 Proof of reserves.** Per custodian attestation that the underlying backing a listed
@@ -26,11 +29,6 @@ records a custodian per security. This adds the attestation and a staleness boun
 venue can refuse to settle against an attestation older than its own risk policy allows.
 
 ## Planned
-
-**v0.6 Cross venue sessions.** Netting is currently per venue, because a venue submits the
-session it computed. Two venues trading the same underlying against overlapping desks still
-settle gross between themselves. This adds aggregation across venues, which is where the
-compression actually gets interesting.
 
 ## Not planned
 

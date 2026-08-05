@@ -3,6 +3,27 @@
 All notable changes to this project are documented here. This project follows
 [semantic versioning](https://semver.org).
 
+## [0.6.0] - 2026-08-05
+
+### Added
+- `settleAggregated(session, venues, grossTrades)`: one session can now cover several venues
+  at once. Netting per venue leaves value on the table, because a desk that ends long on one
+  venue and short the same name on another still moves both positions in full. Aggregated,
+  those cancel before anything moves.
+- Every named venue must be registered and the caller must be one of them, so a group can
+  nominate whichever member submits without letting an outsider settle somebody else's book.
+- `SessionAggregated` event carrying the venue list, which is what makes a combined session
+  auditable after the fact.
+- SDK: `aggregateSessions()` combines venue sessions and refuses to mix securities or cash
+  tokens, `aggregationSaving()` reports what combining removes, and `client.settleAggregated()`
+  submits the result.
+- 8 contract tests and 4 SDK tests, including a fuzz test asserting a combined session leaves
+  desks exactly where settling each venue separately would have.
+
+### Changed
+- `settleSession` and `settleAggregated` share one internal routine, so there is a single place
+  in the contract where value moves.
+
 ## [0.5.0] - 2026-08-03
 
 ### Added

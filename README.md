@@ -9,7 +9,7 @@ Venues match. Pipeshift settles.
 [![License: MIT](https://img.shields.io/badge/license-MIT-0AE8A6.svg?style=flat-square)](LICENSE)
 [![Solidity](https://img.shields.io/badge/solidity-0.8.24-0AE8A6.svg?style=flat-square)](contracts/foundry.toml)
 [![TypeScript](https://img.shields.io/badge/typescript-5.6-0AE8A6.svg?style=flat-square)](sdk-ts/package.json)
-[![Tests](https://img.shields.io/badge/tests-80%20passing-0AE8A6.svg?style=flat-square)](.github/workflows/ci.yml)
+[![Tests](https://img.shields.io/badge/tests-92%20passing-0AE8A6.svg?style=flat-square)](.github/workflows/ci.yml)
 [![E2E](https://img.shields.io/badge/e2e-live%20node%20%2B%20chain%20fork-0AE8A6.svg?style=flat-square)](sdk-ts/e2e)
 [![Chain](https://img.shields.io/badge/chain-Robinhood%20Chain-221B1D.svg?style=flat-square)](https://pipeshift.trade)
 
@@ -181,7 +181,7 @@ position break waiting to happen.
 | Contract | Responsibility | Tests |
 |---|---|---|
 | [`SettlementEngine`](contracts/src/SettlementEngine.sol) | Atomic DVP for matched trades, single, batched and partial | 26 |
-| [`NettingEngine`](contracts/src/NettingEngine.sol) | Multilateral netting sessions, balance enforced on chain | 11 |
+| [`NettingEngine`](contracts/src/NettingEngine.sol) | Multilateral netting, per venue and across venues | 19 |
 | [`AssetRegistry`](contracts/src/AssetRegistry.sol) | Canonical record per underlying, halt and delist controls | 13 |
 | [`SafeTransfer`](contracts/src/libraries/SafeTransfer.sol) | Transfer helpers that tolerate tokens returning no value | covered |
 | [`Owned`](contracts/src/libraries/Owned.sol) | Two step ownership, so control cannot be sent to a dead address | covered |
@@ -234,7 +234,7 @@ sdk-ts/
 | v0.3 | TypeScript SDK, offline CLI, deploy scripts | shipped |
 | v0.4 | Proof of reserves attestation per custodian | in progress |
 | v0.5 | Partial settlement over several fills | shipped |
-| v0.6 | Cross venue session aggregation | planned |
+| v0.6 | Cross venue session aggregation | shipped |
 
 No dates. Follow the commits.
 
