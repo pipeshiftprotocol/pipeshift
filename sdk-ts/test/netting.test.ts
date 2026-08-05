@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
+  IncompatibleSessionsError,
   NettingImbalanceError,
+  aggregateSessions,
+  aggregationSaving,
   assertBalanced,
   compressionOf,
   netTrades,
@@ -135,4 +138,79 @@ test("a round trip through the same desk nets flat", () => {
   assert.equal(report.flatParties, 2);
   assert.equal(report.netTransfers, 0);
   assert.equal(withoutFlatLegs(session).legs.length, 0);
+});
+
+test("aggregateSessions collapses a desk that is long here and short there", () => {
+  const venueOne = {
+    security: SECURITY,
+    cash: CASH,
+    legs: [
+      { party: deskA, quantityDelta: 500n, cashDelta: -100_000n },
+      { party: deskB, quantityDelta: -500n, cashDelta: 100_000n },
+    ],
+  };
+  const venueTwo = {
+    security: SECURITY,
+    cash: CASH,
+    legs: [
+      { party: deskA, quantityDelta: -450n, cashDelta: 91_000n },
+      { party: deskC, quantityDelta: 450n, cashDelta: -91_000n },
+    ],
+  };
+
+  const combined = aggregateSessions([venueOne, venueTwo]);
+  const byParty = new Map(combined.legs.map((leg) => [leg.party, leg]));
+
+  assert.equal(byParty.get(deskA)?.quantityDelta, 50n, "the two positions cancel down to 50");
+  assert.equal(byParty.get(deskB)?.quantityDelta, -500n);
+  assert.equal(byParty.get(deskC)?.quantityDelta, 450n);
+});
+
+test("aggregateSessions keeps the combined session balanced", () => {
+  const one = netTrades(SECURITY, CASH, [
+    { seller: deskA, buyer: deskB, quantity: 400n, consideration: 82_000n },
+  ]);
+  const two = netTrades(SECURITY, CASH, [
+    { seller: deskB, buyer: deskC, quantity: 150n, consideration: 30_800n },
+  ]);
+
+  const combined = aggregateSessions([one, two]);
+
+  assert.equal(combined.legs.reduce((sum, leg) => sum + leg.quantityDelta, 0n), 0n);
+  assert.equal(combined.legs.reduce((sum, leg) => sum + leg.cashDelta, 0n), 0n);
+});
+
+test("aggregateSessions refuses to mix securities or cash tokens", () => {
+  const base = { security: SECURITY, cash: CASH, legs: [] };
+  const otherSecurity = { ...base, security: ("0x" + "ab".repeat(32)) as Hex32 };
+  const otherCash = { ...base, cash: ("0x" + "cd".repeat(20)) as Address };
+
+  assert.throws(() => aggregateSessions([base, otherSecurity]), IncompatibleSessionsError);
+  assert.throws(() => aggregateSessions([base, otherCash]), IncompatibleSessionsError);
+  assert.throws(() => aggregateSessions([]), IncompatibleSessionsError);
+});
+
+test("aggregationSaving reports what combining removes", () => {
+  const one = {
+    security: SECURITY,
+    cash: CASH,
+    legs: [
+      { party: deskA, quantityDelta: 500n, cashDelta: -100_000n },
+      { party: deskB, quantityDelta: -500n, cashDelta: 100_000n },
+    ],
+  };
+  const two = {
+    security: SECURITY,
+    cash: CASH,
+    legs: [
+      { party: deskA, quantityDelta: -500n, cashDelta: 100_000n },
+      { party: deskC, quantityDelta: 500n, cashDelta: -100_000n },
+    ],
+  };
+
+  const saving = aggregationSaving([one, two]);
+
+  assert.equal(saving.perVenue, 8, "four legs, two moves each, settled separately");
+  assert.equal(saving.aggregated, 4, "deskA nets flat and drops out entirely");
+  assert.equal(saving.ratio, 0.5);
 });
