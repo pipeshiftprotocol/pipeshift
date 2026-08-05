@@ -109,3 +109,75 @@ export function withoutFlatLegs(session: Session): Session {
     legs: session.legs.filter((leg) => leg.quantityDelta !== 0n || leg.cashDelta !== 0n),
   };
 }
+
+/** Thrown when sessions that cannot be combined are handed to the aggregator. */
+export class IncompatibleSessionsError extends Error {
+  constructor(reason: string) {
+    super(`sessions cannot be aggregated: ${reason}`);
+    this.name = "IncompatibleSessionsError";
+  }
+}
+
+/**
+ * Combines the sessions of several venues into one.
+ *
+ * Netting per venue leaves value on the table. A desk that ends long on one venue
+ * and short the same name on another still moves both positions in full, even though
+ * the two cancel. Aggregating first means only the difference moves.
+ *
+ * Sessions must cover the same security and the same cash token, because netting
+ * across instruments would need a price and pricing is not a settlement concern.
+ */
+export function aggregateSessions(sessions: readonly Session[]): Session {
+  if (sessions.length === 0) throw new IncompatibleSessionsError("nothing to aggregate");
+
+  const [first] = sessions as [Session, ...Session[]];
+
+  for (const session of sessions) {
+    if (session.security.toLowerCase() !== first.security.toLowerCase()) {
+      throw new IncompatibleSessionsError("more than one security");
+    }
+    if (session.cash.toLowerCase() !== first.cash.toLowerCase()) {
+      throw new IncompatibleSessionsError("more than one cash token");
+    }
+  }
+
+  const quantity = new Map<Address, bigint>();
+  const cash = new Map<Address, bigint>();
+
+  for (const session of sessions) {
+    for (const leg of session.legs) {
+      quantity.set(leg.party, (quantity.get(leg.party) ?? 0n) + leg.quantityDelta);
+      cash.set(leg.party, (cash.get(leg.party) ?? 0n) + leg.cashDelta);
+    }
+  }
+
+  const legs: Leg[] = [...quantity.keys()]
+    .map((party) => ({
+      party,
+      quantityDelta: quantity.get(party) ?? 0n,
+      cashDelta: cash.get(party) ?? 0n,
+    }))
+    .sort((a, b) => (a.party.toLowerCase() < b.party.toLowerCase() ? -1 : 1));
+
+  assertBalanced(legs);
+
+  return { security: first.security, cash: first.cash, legs };
+}
+
+/** Transfers saved by aggregating, against settling each venue's session separately. */
+export function aggregationSaving(
+  sessions: readonly Session[],
+): { perVenue: number; aggregated: number; ratio: number } {
+  const moves = (session: Session): number =>
+    session.legs.reduce(
+      (sum, leg) => sum + (leg.quantityDelta !== 0n ? 1 : 0) + (leg.cashDelta !== 0n ? 1 : 0),
+      0,
+    );
+
+  const perVenue = sessions.reduce((sum, session) => sum + moves(session), 0);
+  const aggregated = moves(withoutFlatLegs(aggregateSessions(sessions)));
+  const ratio = perVenue === 0 ? 0 : 1 - aggregated / perVenue;
+
+  return { perVenue, aggregated, ratio };
+}

@@ -200,6 +200,33 @@ export class PipeshiftClient {
     });
   }
 
+  /**
+   * Settles one session covering several venues.
+   *
+   * The venues are recorded on chain for audit, and the caller has to be one of
+   * them, so a group can nominate whichever member submits without letting an
+   * outsider settle somebody else's book.
+   */
+  async settleAggregated(
+    session: Session,
+    venues: readonly Address[],
+    grossTrades: number,
+  ): Promise<Hash> {
+    const wallet = this.requireWallet("settleAggregated");
+
+    assertBalanced(session.legs);
+    const trimmed = withoutFlatLegs(session);
+
+    return wallet.writeContract({
+      address: this.deployment.nettingEngine as ViemAddress,
+      abi: nettingEngineAbi,
+      functionName: "settleAggregated",
+      args: [trimmed, venues as ViemAddress[], BigInt(grossTrades)],
+      chain: wallet.chain,
+      account: wallet.account!,
+    });
+  }
+
   private requireWallet(operation: string): WalletClient {
     if (!this.walletClient) throw new ReadOnlyClientError(operation);
     return this.walletClient;

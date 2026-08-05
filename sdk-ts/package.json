@@ -1,6 +1,6 @@
 {
   "name": "@pipeshift/sdk",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Settlement SDK for tokenized equities on Robinhood Chain: atomic DVP, multilateral netting, canonical asset registry.",
   "license": "MIT",
   "type": "module",

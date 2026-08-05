@@ -112,6 +112,33 @@ export const nettingEngineAbi = [
   },
   {
     type: "function",
+    name: "settleAggregated",
+    stateMutability: "nonpayable",
+    inputs: [
+      {
+        name: "session",
+        type: "tuple",
+        components: [
+          { name: "security", type: "bytes32" },
+          { name: "cash", type: "address" },
+          {
+            name: "legs",
+            type: "tuple[]",
+            components: [
+              { name: "party", type: "address" },
+              { name: "quantityDelta", type: "int256" },
+              { name: "cashDelta", type: "int256" },
+            ],
+          },
+        ],
+      },
+      { name: "venues", type: "address[]" },
+      { name: "grossTrades", type: "uint256" },
+    ],
+    outputs: [],
+  },
+  {
+    type: "function",
     name: "sessionCount",
     stateMutability: "view",
     inputs: [],
