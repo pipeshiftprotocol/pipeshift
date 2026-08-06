@@ -100,6 +100,27 @@ export interface Fill {
   remaining: bigint;
 }
 
+/** One ERC20 Transfer event, reduced to what netting needs from it. */
+export interface TransferLog {
+  from: Address;
+  to: Address;
+  value: bigint;
+}
+
+/** Result of comparing a derived session against the transfers it replaces. */
+export interface ObservedReport {
+  /** Transfers that fed the session, excluding issues and redeems. */
+  observedTransfers: number;
+  /** Transfers the session performs instead. */
+  netTransfers: number;
+  /** Movements the session removes. */
+  removed: number;
+  /** Parties who traded and ended flat. */
+  flatParties: number;
+  /** Share of observed movement removed, between 0 and 1. */
+  ratio: number;
+}
+
 /** A trade as reported by a venue, before netting. */
 export interface Trade {
   seller: Address;
