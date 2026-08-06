@@ -9,14 +9,16 @@
 
 import { readFileSync } from "node:fs";
 import { compressionOf, netTrades, withoutFlatLegs } from "./netting.js";
+import { observedCompression, sessionFromTransfers, settleSessionCalldata } from "./observed.js";
 import { impliedPrice, instructionId, validate } from "./instruction.js";
 import { securityId } from "./registry.js";
-import type { Instruction, Trade } from "./types.js";
+import type { Instruction, Trade, TransferLog } from "./types.js";
 
 const USAGE = `pipeshift <command> [options]
 
 Commands
   net <file.json>          Collapse a trade file into one net position per party
+  observed <file.json>     Fold ERC20 transfer logs into a session and price the saving
   id <file.json>           Compute the settlement id of an instruction
   validate <file.json>     Check an instruction against the engine rules
   security <ticker> <isin> Compute the canonical registry id for an underlying
@@ -26,6 +28,10 @@ Trade file
   { "security": "0x...", "cash": "0x...",
     "trades": [{ "seller": "0x...", "buyer": "0x...",
                  "quantity": "400", "consideration": "82000" }] }
+
+Transfer file
+  { "security": "0x...", "cash": "0x...",
+    "transfers": [{ "from": "0x...", "to": "0x...", "value": "400" }] }
 
 Amounts are strings in base units. They are parsed as bigint, never as float.
 `;
@@ -105,6 +111,52 @@ function commandNet(path: string): number {
   return 0;
 }
 
+function parseTransfers(raw: unknown): TransferLog[] {
+  if (!Array.isArray(raw)) throw new TypeError("transfers must be an array");
+
+  return raw.map((entry, index) => {
+    const log = entry as Record<string, unknown>;
+    return {
+      from: log.from as TransferLog["from"],
+      to: log.to as TransferLog["to"],
+      value: toBigInt(log.value, `transfers[${index}].value`),
+    };
+  });
+}
+
+function commandObserved(path: string): number {
+  const file = readJson(path);
+  const transfers = parseTransfers(file.transfers);
+
+  const observed = sessionFromTransfers(
+    file.security as `0x${string}`,
+    file.cash as `0x${string}`,
+    transfers,
+  );
+  const report = observedCompression(observed);
+
+  console.log(`security          ${observed.session.security}`);
+  console.log(`transfers read    ${transfers.length}`);
+  console.log(`issues or redeems ${observed.skipped}`);
+  console.log(`transfers counted ${report.observedTransfers}`);
+  console.log(`legs produced     ${report.netTransfers}`);
+  console.log(`movements removed ${report.removed}`);
+  console.log(`parties left flat ${report.flatParties}`);
+  console.log(`compression       ${(report.ratio * 100).toFixed(2)}%`);
+  console.log("");
+  console.log("party                                       quantity");
+
+  for (const leg of observed.session.legs) {
+    console.log(`${leg.party}  ${leg.quantityDelta.toString().padStart(18)}`);
+  }
+
+  console.log("");
+  console.log("calldata");
+  console.log(settleSessionCalldata(observed.session, report.observedTransfers));
+
+  return 0;
+}
+
 function commandId(path: string): number {
   const instruction = parseInstruction(readJson(path));
   console.log(instructionId(instruction));
@@ -142,6 +194,9 @@ export function run(argv: readonly string[]): number {
       case "net":
         if (!rest[0]) throw new TypeError("net requires a trade file");
         return commandNet(rest[0]);
+      case "observed":
+        if (!rest[0]) throw new TypeError("observed requires a transfer file");
+        return commandObserved(rest[0]);
       case "id":
         if (!rest[0]) throw new TypeError("id requires an instruction file");
         return commandId(rest[0]);
