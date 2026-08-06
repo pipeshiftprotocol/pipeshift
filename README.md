@@ -168,6 +168,7 @@ party                                      quantity            cash
 | Command | What it does |
 |---|---|
 | `pipeshift net <file>` | Collapses a trade file into one net position per party |
+| `pipeshift observed <file>` | Folds ERC20 transfer logs into a session and prints the calldata |
 | `pipeshift id <file>` | Computes the settlement id of an instruction |
 | `pipeshift validate <file>` | Checks an instruction against the rules the engine enforces |
 | `pipeshift security <ticker> <isin>` | Computes the canonical registry id for an underlying |
@@ -175,6 +176,29 @@ party                                      quantity            cash
 Amounts in every input file are decimal strings in base units. A number literal is
 rejected rather than parsed, because a float that reaches a settlement amount is a
 position break waiting to happen.
+
+### Starting from the chain instead of from a venue
+
+`netTrades` starts from trades a venue reports. `sessionFromTransfers` starts one step
+earlier, from the ERC20 transfer log, and answers a different question: of the movements
+that already happened, how many needed to.
+
+```ts
+import { observedCompression, sessionFromTransfers, settleSessionCalldata } from "@pipeshift/sdk";
+
+const observed = sessionFromTransfers(security, usdc, transfers);
+const report = observedCompression(observed);
+
+report.removed;      // movements the session takes out
+report.flatParties;  // accounts that traded and ended where they started
+
+settleSessionCalldata(observed.session, report.observedTransfers);
+```
+
+Issues, redeems and self transfers are skipped and counted separately, because a window
+containing a mint cannot net to zero between parties. The cash leg stays at zero: a transfer
+log records that shares moved, not what was paid for them, so the money side belongs to the
+venue that matched the trades.
 
 ## Contracts
 

@@ -69,6 +69,7 @@ The package ships a `pipeshift` binary. Every command is offline and read only.
 
 ```bash
 pipeshift net session.json
+pipeshift observed transfers.json
 pipeshift validate instruction.json
 pipeshift security AAPL US0378331005
 ```
