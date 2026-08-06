@@ -3,6 +3,30 @@
 All notable changes to this project are documented here. This project follows
 [semantic versioning](https://semver.org).
 
+## [0.7.0] - 2026-08-06
+
+### Added
+- `sessionFromTransfers(security, cash, transfers)`: builds a session out of ERC20 transfer
+  logs rather than out of trades a venue reports. Everything before this started from what a
+  venue said it matched. This starts from what the chain actually did, which makes the case
+  for netting measurable against traffic nobody arranged for the demonstration.
+- `observedCompression(observed)` reports the saving against transfers that already happened.
+  `compressionOf` doubles trades into two transfers each, which is the wrong unit when the
+  movements are already on chain and counted one by one.
+- `settleSessionCalldata(session, grossTrades)` returns the exact call a venue would make,
+  encoded and ready, without a signer anywhere near it.
+- `pipeshift observed <file.json>` folds a transfer file into a session, prints the legs and
+  the compression, and hands back the calldata.
+- 12 SDK tests, covering round trips that cancel completely, hops that collapse to their
+  endpoints, and the ordering guarantee that the same window always yields the same session.
+
+### Changed
+- Issues, redeems and self transfers are skipped rather than rejected, and reported separately.
+  A window that contains a mint cannot net to zero between parties, and refusing the whole
+  window over it would make almost every real range unusable.
+- The cash leg of a derived session stays at zero by design. A transfer log records that shares
+  moved, not what was paid for them, so the money side is left to the venue that matched.
+
 ## [0.6.0] - 2026-08-05
 
 ### Added
